@@ -36,7 +36,7 @@ with col1:
 
 with col2:
     # SE O NOME NO GITHUB ESTIVER DIFERENTE, AJUSTE AQUI:
-    st.image("Design sem nome(6).png", width=400)
+    st.image("Design sem nome(6).png", width=350)
 
 
 with col3:
