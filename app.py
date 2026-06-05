@@ -32,12 +32,13 @@ col1, col2, col3 = st.columns(3)
 
 with col1:
     # SE O NOME NO GITHUB ESTIVER DIFERENTE, AJUSTE AQUI:
-    st.image("Design sem nome(6).png", width=150)
+    st.image("Objetivo_Desenvolvimento_Sustentável_16_PT.jpg", width=250)
 
 with col2:
     # SE O NOME NO GITHUB ESTIVER DIFERENTE, AJUSTE AQUI:
-    st.image("Objetivo_Desenvolvimento_Sustentável_16_PT.jpg", width=150)
+    st.image("Design sem nome(6).png", width=300)
+
 
 with col3:
     # SE O NOME NO GITHUB ESTIVER DIFERENTE, AJUSTE AQUI:
-    st.image("SDG-icon-PT-RGB-10-1.jpg", width=150)
+    st.image("SDG-icon-PT-RGB-10-1.jpg", width=250)
