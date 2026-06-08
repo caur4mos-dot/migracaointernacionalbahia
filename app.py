@@ -9,9 +9,11 @@ st.set_page_config(
 # Título principal
 st.markdown(
     """
-    <h1 style="text-align: center;">
-    Análise temporal, espacial e sociodemográfica da migração internacional regularizada na Bahia entre 2021 e 2025 utilizando Inteligência Artificial para predição de 2026
-    </h1>
+    <div style="max-width: 1200px; margin: auto;">
+        <h1 style="text-align: center;">
+            Análise temporal, espacial e sociodemográfica da migração internacional regularizada na Bahia entre 2021 e 2025 utilizando Inteligência Artificial para predição de 2026
+        </h1>
+    </div>
     """,
     unsafe_allow_html=True
 )
