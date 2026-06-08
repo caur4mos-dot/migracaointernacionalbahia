@@ -31,27 +31,20 @@ heat_amparo = pd.read_csv("dados/heat_amparo.csv")
 heat_profissao = pd.read_csv("dados/heat_profissao.csv")
 
 # ==================================
-# FILTROS GERAIS (OPÇÃO 2: SEGMENTED CONTROL)
+# FILTROS GERAIS (OPÇÃO 3: SELECTBOX ÚNICA)
 # ==================================
 with st.container(border=True):
-    st.markdown("##### 📅 Selecione os Anos de Análise")
+    st.markdown("##### 📅 Filtrar por Ano Específico")
     
     # Lista única de anos disponíveis nos seus dados
     anos_disponiveis = sorted(crescimento["ano"].unique())
     
-    # Botões segmentados na horizontal (Pílulas/Botões)
-    anos_selecionados = st.segmented_control(
-        label="Anos disponíveis:", # Label discreto
-        label_visibility="collapsed", # Oculta o texto acima para ficar mais limpo
+    # Caixa de seleção simples para escolher apenas um ano
+    ano_selecionado = st.selectbox(
+        label="Selecione o ano desejado:",
         options=anos_disponiveis,
-        default=anos_disponiveis,
-        selection_mode="multi" # Permite ativar/desativar múltiplos anos
+        index=len(anos_disponiveis) - 1 # Define o último ano (2025) como padrão inicial
     )
-    
-    # Validação caso o usuário desmarque tudo
-    if not anos_selecionados:
-        st.warning("⚠️ Ative pelo menos um ano acima para visualizar os gráficos.")
-        st.stop()
 
 st.markdown("<br>", unsafe_allow_html=True)
 
@@ -74,10 +67,11 @@ aba1, aba2, aba3 = st.tabs(
 with aba1:
 
     st.subheader(
-        "Evolução anual da frequência absoluta dos migrantes com registros migratórios na Bahia"
+        f"Frequência absoluta dos migrantes com registros migratórios na Bahia em {ano_selecionado}"
     )
 
-    crescimento_filtrado = crescimento[crescimento["ano"].isin(anos_selecionados)]
+    # Filtragem exata do ano selecionado
+    crescimento_filtrado = crescimento[crescimento["ano"] == ano_selecionado]
 
     fig = go.Figure()
 
@@ -85,25 +79,21 @@ with aba1:
         go.Scatter(
             x=crescimento_filtrado["ano"],
             y=crescimento_filtrado["migrantes"],
-            mode="lines+markers+text",
+            mode="markers+text", # Como é só um ponto, mudamos para marcadores e texto
             text=[
                 f"{x:,}".replace(",", ".")
                 for x in crescimento_filtrado["migrantes"]
             ],
             textposition="top center",
-            line=dict(
-                color="#333795",
-                width=5
-            ),
             marker=dict(
                 color="#B31D2D",
-                size=12
+                size=14
             )
         )
     )
 
     fig.update_layout(
-        height=550,
+        height=400,
         template="simple_white",
         showlegend=False,
         xaxis_title="Ano",
@@ -112,7 +102,7 @@ with aba1:
 
     fig.update_xaxes(
         tickmode="array",
-        tickvals=anos_selecionados
+        tickvals=[ano_selecionado]
     )
 
     st.plotly_chart(
@@ -128,10 +118,11 @@ with aba1:
 with aba2:
 
     st.subheader(
-        "Evolução anual do sexo dos migrantes regularizados na Bahia"
+        f"Distribuição por sexo dos migrantes regularizados na Bahia em {ano_selecionado}"
     )
 
-    sexo_filtrado = sexo[sexo["ano"].isin(anos_selecionados)]
+    # Filtragem exata do ano selecionado
+    sexo_filtrado = sexo[sexo["ano"] == ano_selecionado]
 
     cores = {
         "Masculino": "#333795",
@@ -141,44 +132,23 @@ with aba2:
 
     fig = go.Figure()
 
-    for sexo_cat in sexo_filtrado["SEXO"].unique():
-
-        dados = sexo_filtrado[
-            sexo_filtrado["SEXO"] == sexo_cat
-        ]
-
-        fig.add_trace(
-            go.Scatter(
-                x=dados["ano"],
-                y=dados["n"],
-                mode="lines+markers+text",
-                text=dados["n"],
-                textposition="top center",
-                name=sexo_cat,
-                line=dict(
-                    width=4,
-                    color=cores.get(
-                        sexo_cat,
-                        "#444444"
-                    )
-                ),
-                marker=dict(
-                    size=10
-                )
-            )
+    # Como mudamos para ano único, um gráfico de Barras fica esteticamente melhor que linhas de ponto único
+    fig.add_trace(
+        go.Bar(
+            x=sexo_filtrado["SEXO"],
+            y=sexo_filtrado["n"],
+            text=sexo_filtrado["n"],
+            textposition="auto",
+            marker_color=[cores.get(cat, "#444444") for cat in sexo_filtrado["SEXO"]]
         )
-
-    fig.update_layout(
-        height=550,
-        template="simple_white",
-        xaxis_title="Ano",
-        yaxis_title="Número de migrantes",
-        legend_title="Sexo"
     )
 
-    fig.update_xaxes(
-        tickmode="array",
-        tickvals=anos_selecionados
+    fig.update_layout(
+        height=450,
+        template="simple_white",
+        xaxis_title="Sexo",
+        yaxis_title="Número de migrantes",
+        showlegend=False
     )
 
     st.plotly_chart(
@@ -194,10 +164,11 @@ with aba2:
 with aba3:
 
     st.subheader(
-        "Evolução anual das classificações de situação migratória na Bahia"
+        f"Classificações de situação migratória na Bahia em {ano_selecionado}"
     )
 
-    classificacao_filtrada = classificacao[classificacao["ano"].isin(anos_selecionados)]
+    # Filtragem exata do ano selecionado
+    classificacao_filtrada = classificacao[classificacao["ano"] == ano_selecionado]
 
     cores_class = {
         "Temporário": "#333795",
@@ -207,44 +178,23 @@ with aba3:
 
     fig = go.Figure()
 
-    for categoria in classificacao_filtrada["CLASSIFICACAO_REGISTRO"].unique():
-
-        dados = classificacao_filtrada[
-            classificacao_filtrada["CLASSIFICACAO_REGISTRO"] == categoria
-        ]
-
-        fig.add_trace(
-            go.Scatter(
-                x=dados["ano"],
-                y=dados["n"],
-                mode="lines+markers+text",
-                text=dados["n"],
-                textposition="top center",
-                name=categoria,
-                line=dict(
-                    width=4,
-                    color=cores_class.get(
-                        categoria,
-                        "#444444"
-                    )
-                ),
-                marker=dict(
-                    size=10
-                )
-            )
+    # Mudado para gráfico de Barras para melhor representação de ponto único no tempo
+    fig.add_trace(
+        go.Bar(
+            x=classificacao_filtrada["CLASSIFICACAO_REGISTRO"],
+            y=classificacao_filtrada["n"],
+            text=classificacao_filtrada["n"],
+            textposition="auto",
+            marker_color=[cores_class.get(cat, "#444444") for cat in classificacao_filtrada["CLASSIFICACAO_REGISTRO"]]
         )
-
-    fig.update_layout(
-        height=550,
-        template="simple_white",
-        xaxis_title="Ano",
-        yaxis_title="Número de migrantes",
-        legend_title="Classificação"
     )
 
-    fig.update_xaxes(
-        tickmode="array",
-        tickvals=anos_selecionados
+    fig.update_layout(
+        height=450,
+        template="simple_white",
+        xaxis_title="Classificação",
+        yaxis_title="Número de migrantes",
+        showlegend=False
     )
 
     st.plotly_chart(
@@ -258,7 +208,7 @@ with aba3:
 # ==================================
 
 st.markdown("<hr>", unsafe_allow_html=True)
-st.header("📋 Distribuições Percentuais Anuais")
+st.header("📋 Distribuições Percentuais")
 
 # ==================================
 # ABAS DOS HEATMAPS
@@ -291,10 +241,10 @@ cores_heatmap = [
 with aba_h1:
 
     st.subheader(
-        "Distribuição percentual por continente de origem"
+        f"Distribuição percentual por continente de origem ({ano_selecionado})"
     )
 
-    heat_continente_filtrado = heat_continente[heat_continente["ano"].isin(anos_selecionados)]
+    heat_continente_filtrado = heat_continente[heat_continente["ano"] == ano_selecionado]
 
     tabela = heat_continente_filtrado.pivot(
         index="CONTINENTE",
@@ -332,10 +282,10 @@ with aba_h1:
 with aba_h2:
 
     st.subheader(
-        "Distribuição percentual por tipologia de amparo"
+        f"Distribuição percentual por tipologia de amparo ({ano_selecionado})"
     )
 
-    heat_amparo_filtrado = heat_amparo[heat_amparo["ano"].isin(anos_selecionados)]
+    heat_amparo_filtrado = heat_amparo[heat_amparo["ano"] == ano_selecionado]
 
     tabela = heat_amparo_filtrado.pivot(
         index="TIPOLOGIA_AMPAROS",
@@ -373,10 +323,10 @@ with aba_h2:
 with aba_h3:
 
     st.subheader(
-        "Distribuição percentual por grupo profissional"
+        f"Distribuição percentual por grupo profissional ({ano_selecionado})"
     )
 
-    heat_profissao_filtrado = heat_profissao[heat_profissao["ano"].isin(anos_selecionados)]
+    heat_profissao_filtrado = heat_profissao[heat_profissao["ano"] == ano_selecionado]
 
     tabela = heat_profissao_filtrado.pivot(
         index="grupo_profissao",
@@ -404,5 +354,5 @@ with aba_h3:
     st.plotly_chart(
         fig,
         use_container_width=True,
-        config={"config": {"displayModeBar": False}}
+        config={"displayModeBar": False}
     )
