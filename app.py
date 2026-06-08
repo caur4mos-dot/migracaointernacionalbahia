@@ -6,41 +6,44 @@ st.set_page_config(
     layout="wide"
 )
 
-# Título principal
+# Título e texto introdutório
 st.markdown(
     """
-    <h1 style="text-align: center;">
-    Análise temporal, espacial e sociodemográfica da migração internacional regularizada na Bahia entre 2021 e 2025 utilizando Inteligência Artificial para predição de 2026
-    </h1>
+    <div style="max-width: 1200px; margin: auto;">
+
+        <h1 style="text-align: center;">
+            Análise temporal, espacial e sociodemográfica da migração internacional regularizada na Bahia entre 2021 e 2025 utilizando Inteligência Artificial para predição de 2026
+        </h1>
+
+        <div style="text-align: justify; font-size: 18px;">
+
+        Este site apresenta análises dos fluxos migratórios internacionais regularizados
+        na Bahia utilizando dados do SISMIGRA com o objetivo de compreender os padrões
+        migratórios e apoiar a gestão da Bahia no fortalecimento de políticas públicas
+        de acolhimento, regularização documental, inclusão social, emprego, educação
+        e planejamento territorial.
+
+        O estudo está alinhado à Lei de Migração nº 13.445/2017 e aos Objetivos de
+        Desenvolvimento Sustentável (ODS) 10.7 e 16, que preveem a facilitação de uma
+        migração segura e regular, bem como o fortalecimento de instituições eficazes
+        e do acesso à justiça.
+
+        </div>
+
+    </div>
     """,
     unsafe_allow_html=True
 )
 
-# Texto introdutório e seções
+# Seções
 st.markdown(
     """
-    <div style="max-width: 1200px; margin: auto; text-align: justify; font-size: 18px;">
-
-    Este site apresenta análises dos fluxos migratórios internacionais regularizados
-    na Bahia utilizando dados do SISMIGRA com o objetivo de compreender os padrões
-    migratórios e apoiar a gestão da Bahia no fortalecimento de políticas públicas
-    de acolhimento, regularização documental, inclusão social, emprego, educação
-    e planejamento territorial.
-
-    O estudo está alinhado à Lei de Migração nº 13.445/2017 e aos Objetivos de
-    Desenvolvimento Sustentável (ODS) 10.7 e 16, que preveem a facilitação de uma
-    migração segura e regular, bem como o fortalecimento de instituições eficazes
-    e do acesso à justiça.
-
-    </div>
-
     ### Seções
 
     - Perfil Sociodemográfico
     - Visualização Espacial
     - Predição dos Fluxos Migratórios
-    """,
-    unsafe_allow_html=True
+    """
 )
 
 # Linha divisória
