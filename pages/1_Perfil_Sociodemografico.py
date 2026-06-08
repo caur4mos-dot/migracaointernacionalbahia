@@ -10,7 +10,7 @@ st.set_page_config(layout="wide")
 # TÍTULO GERAL
 # ==================================
 
-st.title("📊 Painel do Perfil Sociodemográfico")
+st.title("Painel do Perfil Sociodemográfico")
 
 st.markdown(
     """
@@ -34,7 +34,7 @@ heat_profissao = pd.read_csv("dados/heat_profissao.csv")
 # FILTROS GERAIS (OPÇÃO 1: SLIDER DE INTERVALO)
 # ==================================
 with st.container(border=True):
-    st.markdown("##### 📅 Selecione o Período de Análise")
+    st.markdown("##### Selecione o Período de Análise")
     
     # Identifica o ano mínimo e máximo diretamente dos seus dados
     ano_minimo = int(crescimento["ano"].min())
