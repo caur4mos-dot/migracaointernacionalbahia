@@ -1,4 +1,3 @@
-```python
 import streamlit as st
 
 st.set_page_config(
@@ -85,4 +84,3 @@ with col2:
     )
 
 st.markdown("---")
-```
