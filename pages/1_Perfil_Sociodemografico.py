@@ -3,15 +3,19 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 
+# Configuração da página para aproveitar melhor o espaço horizontal
+st.set_page_config(layout="wide")
+
 # ==================================
-# TÍTULO
+# TÍTULO GERAL
 # ==================================
 
-st.title("Perfil Sociodemográfico")
+st.title("📊 Painel do Perfil Sociodemográfico")
 
-st.write(
+st.markdown(
     """
-    O objetivo desta aba é trazer uma visualização do Perfil Sociodemográfico junto a visualização temporal dos resultados.
+    O objetivo desta aba é trazer uma visualização do Perfil Sociodemográfico junto a visualização temporal dos resultados 
+    dos migrantes regularizados no estado da Bahia.
     """
 )
 
@@ -19,29 +23,44 @@ st.write(
 # LEITURA DOS DADOS
 # ==================================
 
-crescimento = pd.read_csv(
-    "dados/crescimento_anual.csv"
-)
+crescimento = pd.read_csv("dados/crescimento_anual.csv")
+sexo = pd.read_csv("dados/sexo_ano.csv")
+classificacao = pd.read_csv("dados/classificacao_ano.csv")
+heat_continente = pd.read_csv("dados/heat_continente.csv")
+heat_amparo = pd.read_csv("dados/heat_amparo.csv")
+heat_profissao = pd.read_csv("dados/heat_profissao.csv")
 
-sexo = pd.read_csv(
-    "dados/sexo_ano.csv"
-)
+# ==================================
+# FILTROS GERAIS (NO TOPO)
+# ==================================
+# Criando uma área destacada para os filtros usando um container com borda
+with st.container(border=True):
+    st.markdown("##### 🔍 Filtros do Painel")
+    
+    # Lista única de anos disponíveis com base nos seus dados
+    anos_disponiveis = sorted(crescimento["ano"].unique())
+    
+    # Criando colunas para os componentes ficarem lado a lado
+    col_filtro1, col_filtro2 = st.columns([2, 1])
+    
+    with col_filtro1:
+        # Filtro de seleção múltipla para os anos
+        anos_selecionados = st.multiselect(
+            "Selecione os Anos de Análise:",
+            options=anos_disponiveis,
+            default=anos_disponiveis
+        )
+        
+    with col_filtro2:
+        # Um indicador simples ou espaço para outro filtro futuro (ex: Gênero, Amparo específico, etc.)
+        st.markdown("<br>", unsafe_allow_html=True) # Alinhamento visual
+        if not anos_selecionados:
+            st.warning("⚠️ Selecione ao menos um ano para exibir os dados.")
+            st.stop()
+        else:
+            st.success(f"Exibindo dados de {len(anos_selecionados)} ano(s).")
 
-classificacao = pd.read_csv(
-    "dados/classificacao_ano.csv"
-)
-
-heat_continente = pd.read_csv(
-    "dados/heat_continente.csv"
-)
-
-heat_amparo = pd.read_csv(
-    "dados/heat_amparo.csv"
-)
-
-heat_profissao = pd.read_csv(
-    "dados/heat_profissao.csv"
-)
+st.markdown("<br>", unsafe_allow_html=True)
 
 # ==================================
 # ABAS DOS GRÁFICOS DE LINHA
@@ -49,9 +68,9 @@ heat_profissao = pd.read_csv(
 
 aba1, aba2, aba3 = st.tabs(
     [
-        "📈 Evolução",
-        "👨👩 Sexo",
-        "📋 Classificação"
+        "📈 Evolução Total",
+        "👨👩 Perfil por Sexo",
+        "📋 Classificação Migratória"
     ]
 )
 
@@ -65,16 +84,19 @@ with aba1:
         "Evolução anual da frequência absoluta dos migrantes com registros migratórios na Bahia"
     )
 
+    # Filtragem dinâmica conforme a seleção do topo
+    crescimento_filtrado = crescimento[crescimento["ano"].isin(anos_selecionados)]
+
     fig = go.Figure()
 
     fig.add_trace(
         go.Scatter(
-            x=crescimento["ano"],
-            y=crescimento["migrantes"],
+            x=crescimento_filtrado["ano"],
+            y=crescimento_filtrado["migrantes"],
             mode="lines+markers+text",
             text=[
                 f"{x:,}".replace(",", ".")
-                for x in crescimento["migrantes"]
+                for x in crescimento_filtrado["migrantes"]
             ],
             textposition="top center",
             line=dict(
@@ -89,7 +111,7 @@ with aba1:
     )
 
     fig.update_layout(
-        height=600,
+        height=550,
         template="simple_white",
         showlegend=False,
         xaxis_title="Ano",
@@ -98,7 +120,7 @@ with aba1:
 
     fig.update_xaxes(
         tickmode="array",
-        tickvals=[2021, 2022, 2023, 2024, 2025]
+        tickvals=anos_selecionados
     )
 
     st.plotly_chart(
@@ -117,6 +139,9 @@ with aba2:
         "Evolução anual do sexo dos migrantes regularizados na Bahia"
     )
 
+    # Filtragem dinâmica conforme a seleção do topo
+    sexo_filtrado = sexo[sexo["ano"].isin(anos_selecionados)]
+
     cores = {
         "Masculino": "#333795",
         "Feminino": "#B31D2D",
@@ -125,10 +150,10 @@ with aba2:
 
     fig = go.Figure()
 
-    for sexo_cat in sexo["SEXO"].unique():
+    for sexo_cat in sexo_filtrado["SEXO"].unique():
 
-        dados = sexo[
-            sexo["SEXO"] == sexo_cat
+        dados = sexo_filtrado[
+            sexo_filtrado["SEXO"] == sexo_cat
         ]
 
         fig.add_trace(
@@ -153,7 +178,7 @@ with aba2:
         )
 
     fig.update_layout(
-        height=600,
+        height=550,
         template="simple_white",
         xaxis_title="Ano",
         yaxis_title="Número de migrantes",
@@ -162,7 +187,7 @@ with aba2:
 
     fig.update_xaxes(
         tickmode="array",
-        tickvals=[2021, 2022, 2023, 2024, 2025]
+        tickvals=anos_selecionados
     )
 
     st.plotly_chart(
@@ -181,6 +206,9 @@ with aba3:
         "Evolução anual das classificações de situação migratória na Bahia"
     )
 
+    # Filtragem dinâmica conforme a seleção do topo
+    classificacao_filtrada = classificacao[classificacao["ano"].isin(anos_selecionados)]
+
     cores_class = {
         "Temporário": "#333795",
         "Residente": "#B31D2D",
@@ -189,14 +217,10 @@ with aba3:
 
     fig = go.Figure()
 
-    for categoria in classificacao[
-        "CLASSIFICACAO_REGISTRO"
-    ].unique():
+    for categoria in classificacao_filtrada["CLASSIFICACAO_REGISTRO"].unique():
 
-        dados = classificacao[
-            classificacao[
-                "CLASSIFICACAO_REGISTRO"
-            ] == categoria
+        dados = classificacao_filtrada[
+            classificacao_filtrada["CLASSIFICACAO_REGISTRO"] == categoria
         ]
 
         fig.add_trace(
@@ -221,7 +245,7 @@ with aba3:
         )
 
     fig.update_layout(
-        height=600,
+        height=550,
         template="simple_white",
         xaxis_title="Ano",
         yaxis_title="Número de migrantes",
@@ -230,7 +254,7 @@ with aba3:
 
     fig.update_xaxes(
         tickmode="array",
-        tickvals=[2021, 2022, 2023, 2024, 2025]
+        tickvals=anos_selecionados
     )
 
     st.plotly_chart(
@@ -240,12 +264,11 @@ with aba3:
     )
 
 # ==================================
-# SEPARADOR
+# SEPARADOR DE SEÇÃO
 # ==================================
 
-st.markdown("---")
-
-st.header("Distribuições Percentuais Anuais")
+st.markdown("<hr>", unsafe_allow_html=True)
+st.header("📋 Distribuições Percentuais Anuais")
 
 # ==================================
 # ABAS DOS HEATMAPS
@@ -255,12 +278,12 @@ aba_h1, aba_h2, aba_h3 = st.tabs(
     [
         "🌎 Continente",
         "📄 Tipologia de Amparo",
-        "💼 Profissão"
+        "💼 Grupo Profissional"
     ]
 )
 
 # ==================================
-# PALETA
+# PALETA HEATMAP
 # ==================================
 
 cores_heatmap = [
@@ -281,7 +304,10 @@ with aba_h1:
         "Distribuição percentual por continente de origem"
     )
 
-    tabela = heat_continente.pivot(
+    # Filtragem dinâmica conforme a seleção do topo
+    heat_continente_filtrado = heat_continente[heat_continente["ano"].isin(anos_selecionados)]
+
+    tabela = heat_continente_filtrado.pivot(
         index="CONTINENTE",
         columns="ano",
         values="percentual"
@@ -320,7 +346,10 @@ with aba_h2:
         "Distribuição percentual por tipologia de amparo"
     )
 
-    tabela = heat_amparo.pivot(
+    # Filtragem dinâmica conforme a seleção do topo
+    heat_amparo_filtrado = heat_amparo[heat_amparo["ano"].isin(anos_selecionados)]
+
+    tabela = heat_amparo_filtrado.pivot(
         index="TIPOLOGIA_AMPAROS",
         columns="ano",
         values="percentual"
@@ -359,7 +388,10 @@ with aba_h3:
         "Distribuição percentual por grupo profissional"
     )
 
-    tabela = heat_profissao.pivot(
+    # Filtragem dinâmica conforme a seleção do topo
+    heat_profissao_filtrado = heat_profissao[heat_profissao["ano"].isin(anos_selecionados)]
+
+    tabela = heat_profissao_filtrado.pivot(
         index="grupo_profissao",
         columns="ano",
         values="percentual"
