@@ -427,8 +427,7 @@ with aba_h2:
 with aba_h3:
 
     st.subheader(
-        "Distribuição percentual anual das profissões dos migrantes com Registrados na Bahia
-"
+        "Distribuição percentual anual das profissões dos migrantes com Registrados na Bahia"
     )
 
     heat_profissao_filtrado = heat_profissao[heat_profissao["ano"].isin(anos_selecionados)]
