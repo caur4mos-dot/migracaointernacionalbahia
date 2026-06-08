@@ -317,7 +317,7 @@ def ordenar_categorias(lista_categorias):
 with aba_h1:
 
     st.subheader(
-        "Distribuição percentual por continente de origem"
+        "Distribuição percentual anual dos migrantes Regularizados por continente na Bahia"
     )
 
     heat_continente_filtrado = heat_continente[heat_continente["ano"].isin(anos_selecionados)]
@@ -372,7 +372,7 @@ with aba_h1:
 with aba_h2:
 
     st.subheader(
-        "Distribuição percentual por tipologia de amparo"
+        "Distribuição percentual anual das modalidades de regularização migratória na Bahia"
     )
 
     heat_amparo_filtrado = heat_amparo[heat_amparo["ano"].isin(anos_selecionados)]
@@ -427,7 +427,8 @@ with aba_h2:
 with aba_h3:
 
     st.subheader(
-        "Distribuição percentual por grupo profissional"
+        "Distribuição percentual anual das profissões dos migrantes com Registrados na Bahia
+"
     )
 
     heat_profissao_filtrado = heat_profissao[heat_profissao["ano"].isin(anos_selecionados)]
