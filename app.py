@@ -9,7 +9,7 @@ st.set_page_config(
 # Título principal
 st.markdown(
     """
-   <div style="max-width: 1200px; margin: auto; text-align: justify; font-size: 18px;">
+    <h1 style="text-align: center;">
     Análise temporal, espacial e sociodemográfica da migração internacional regularizada na Bahia entre 2021 e 2025 utilizando Inteligência Artificial para predição de 2026
     </h1>
     """,
