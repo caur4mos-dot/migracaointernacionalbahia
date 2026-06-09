@@ -210,4 +210,139 @@ st_folium(
     height=700
 )
 
+# ==================================
+# MAPA INTERATIVO DA MÉDIA 2021-2025
+# ==================================
 
+import streamlit as st
+import geopandas as gpd
+import pandas as pd
+import folium
+from streamlit_folium import st_folium
+
+st.divider()
+
+st.subheader(
+    "Taxa média de migração internacional por microrregião (2021–2025)"
+)
+
+st.write(
+    """
+    O mapa apresenta a taxa média anual de migrantes
+    internacionais regularizados por 100 mil habitantes
+    nas microrregiões da Bahia entre 2021 e 2025.
+
+    A média reduz oscilações específicas de cada ano
+    e permite identificar os territórios que mantiveram
+    maior intensidade migratória ao longo do período.
+    """
+)
+
+# ==================================
+# LEITURA DOS GEOJSON
+# ==================================
+
+g2021 = gpd.read_file("dados/mapa_2021.geojson")
+g2022 = gpd.read_file("dados/mapa_2022.geojson")
+g2023 = gpd.read_file("dados/mapa_2023.geojson")
+g2024 = gpd.read_file("dados/mapa_2024.geojson")
+g2025 = gpd.read_file("dados/mapa_2025.geojson")
+
+# ==================================
+# JUNTAR TODOS OS ANOS
+# ==================================
+
+todos = pd.concat(
+    [g2021, g2022, g2023, g2024, g2025],
+    ignore_index=True
+)
+
+# ==================================
+# CALCULAR MÉDIAS
+# ==================================
+
+medias = (
+    todos
+    .groupby("name_micro")
+    .agg(
+        media_migrantes=("total_migrantes", "mean"),
+        media_populacao=("populacao", "mean"),
+        media_taxa=("taxa_100k", "mean")
+    )
+    .reset_index()
+)
+
+# ==================================
+# GEOMETRIA ÚNICA
+# ==================================
+
+geometria = g2025[
+    ["name_micro", "geometry"]
+].copy()
+
+mapa_media = geometria.merge(
+    medias,
+    on="name_micro",
+    how="left"
+)
+
+# ==================================
+# MAPA
+# ==================================
+
+m = folium.Map(
+    location=[-12.8, -41.5],
+    zoom_start=6,
+    tiles="CartoDB positron"
+)
+
+folium.Choropleth(
+    geo_data=mapa_media,
+    data=mapa_media,
+    columns=["name_micro", "media_taxa"],
+    key_on="feature.properties.name_micro",
+    fill_color="PuBuGn",
+    fill_opacity=0.9,
+    line_opacity=0.8,
+    legend_name="Taxa média por 100 mil habitantes"
+).add_to(m)
+
+# ==================================
+# TOOLTIP
+# ==================================
+
+tooltip = folium.GeoJsonTooltip(
+    fields=[
+        "name_micro",
+        "media_migrantes",
+        "media_populacao",
+        "media_taxa"
+    ],
+    aliases=[
+        "Microrregião:",
+        "Média de migrantes:",
+        "Média populacional:",
+        "Taxa média por 100 mil:"
+    ],
+    localize=True,
+    sticky=False
+)
+
+folium.GeoJson(
+    mapa_media,
+    tooltip=tooltip,
+    style_function=lambda x: {
+        "color": "black",
+        "weight": 1
+    }
+).add_to(m)
+
+# ==================================
+# EXIBIR
+# ==================================
+
+st_folium(
+    m,
+    use_container_width=True,
+    height=700
+)
