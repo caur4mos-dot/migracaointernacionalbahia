@@ -16,10 +16,15 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# Texto introdutório + seções alinhados
+# Texto introdutório e seções
 st.markdown(
     """
-    <div style="max-width: 1200px; margin: auto; font-size: 18px;">
+    <div style="
+        max-width: 1400px;
+        margin-left: 20px;
+        margin-right: 20px;
+        font-size: 18px;
+    ">
 
     <p style="text-align: justify;">
     Este site apresenta análises dos fluxos migratórios internacionais regularizados
@@ -50,4 +55,43 @@ st.markdown(
 )
 
 # Linha divisória
+st.markdown("---")
+
+# Logos
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    st.image("SDG-icon-PT-RGB-10-1.jpg", width=250)
+
+with col2:
+    st.image("Design sem nome(6).png", width=350)
+
+with col3:
+    st.image("Objetivo_Desenvolvimento_Sustentável_16_PT.jpg", width=250)
+
+# Desenvolvedores
+st.markdown(
+    """
+    ### Desenvolvedores
+
+    - Cauã Ramos Santos Oliveira
+    - Denise Nunes Viola
+    """
+)
+
+# Fotos
+col1, col2 = st.columns(2)
+
+with col1:
+    st.image(
+        "WhatsApp Image 2026-06-05 at 15.10.02.jpeg",
+        width=400
+    )
+
+with col2:
+    st.image(
+        "117146658_326983188474224_7519955368301025113_n.jpg",
+        width=400
+    )
+
 st.markdown("---")
