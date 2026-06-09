@@ -210,3 +210,30 @@ st_folium(
     height=700
 )
 
+# =========================
+# GIF EVOLUÇÃO ESPACIAL
+# =========================
+
+st.divider()
+
+st.subheader(
+    "Evolução espacial acumulada da migração internacional"
+)
+
+st.write(
+    """
+    A animação apresenta a distribuição espacial
+    acumulada dos registros migratórios internacionais
+    regularizados nas microrregiões da Bahia entre
+    2021 e 2025.
+    
+    Cada quadro incorpora os registros dos anos
+    anteriores, permitindo visualizar a consolidação
+    espacial dos fluxos migratórios ao longo do período.
+    """
+)
+
+st.image(
+    "dados/evolucao_migracao.gif",
+    use_container_width=True
+)
