@@ -4,14 +4,13 @@ import pandas as pd
 st.title("Distribuição Espacial")
 
 st.subheader(
-    "Qualidade da informação de município de residência"
+    "Limitação dos dados"
 )
 
 st.write(
     """
-    Parte dos registros migratórios não possui município de residência
-    informado. A tabela abaixo apresenta a quantidade e o percentual
-    desses registros por ano.
+    Antes da visualização espacial, é importante destacar a elevada quantidade de registros sem especificação do município de residência. Essa limitação resulta em perda
+    parcial de informações espaciais, uma vez que parte dos registros não pode ser adequadamente territorializada.
     """
 )
 
