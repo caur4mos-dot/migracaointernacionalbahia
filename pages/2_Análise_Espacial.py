@@ -227,17 +227,6 @@ st.subheader(
     "Taxa média de migração internacional por microrregião (2021–2025)"
 )
 
-st.write(
-    """
-    O mapa apresenta a taxa média anual de migrantes internacionais
-    regularizados por 100 mil habitantes nas microrregiões da Bahia
-    entre 2021 e 2025.
-
-    A média reduz oscilações específicas de cada ano e permite
-    identificar os territórios que mantiveram maior intensidade
-    migratória ao longo do período.
-    """
-)
 
 # =========================
 # LER MAPAS
