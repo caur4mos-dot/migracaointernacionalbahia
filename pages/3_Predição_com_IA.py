@@ -18,10 +18,6 @@ st.write(
     O mapa apresenta a taxa prevista de migrantes
     internacionais regularizados por 100 mil habitantes
     nas microrregiões da Bahia para o ano de 2026.
-
-    As estimativas foram obtidas por meio de um modelo
-    Random Forest treinado com informações observadas
-    entre 2021 e 2025.
     """
 )
 
