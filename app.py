@@ -69,9 +69,6 @@ with col2:
 with col3:
     st.image("Objetivo_Desenvolvimento_Sustentável_16_PT.jpg", width=250)
 
-
-st.markdown("---")
-
 # Desenvolvedores
 st.markdown(
     """
@@ -96,3 +93,8 @@ with col2:
         "117146658_326983188474224_7519955368301025113_n.jpg",
         width=400
     )
+
+
+
+st.markdown("---")
+
