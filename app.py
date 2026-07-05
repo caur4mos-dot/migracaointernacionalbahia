@@ -71,3 +71,28 @@ with col3:
 
 
 st.markdown("---")
+
+# Desenvolvedores
+st.markdown(
+    """
+    ### Desenvolvedores
+
+    - Cauã Ramos Santos Oliveira
+    - Denise Nunes Viola
+    """
+)
+
+# Fotos
+col1, col2 = st.columns(2)
+
+with col1:
+    st.image(
+        "WhatsApp Image 2026-06-05 at 15.10.02.jpeg",
+        width=400
+    )
+
+with col2:
+    st.image(
+        "117146658_326983188474224_7519955368301025113_n.jpg",
+        width=400
+    )
