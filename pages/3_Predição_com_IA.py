@@ -7,7 +7,6 @@ import plotly.express as px
 from branca.colormap import LinearColormap
 from streamlit_folium import st_folium
 
-
 # =====================================================
 # TÍTULO
 # =====================================================
@@ -17,11 +16,10 @@ st.title("Predição dos Fluxos Migratórios para 2026")
 st.write(
     """
     Esta seção apresenta a predição da taxa de migrantes
-    internacionais regularizados por 100 mil habitantes
+    internacionais regularizados por 10 mil habitantes
     nas microrregiões da Bahia para o ano de 2026.
     """
 )
-
 
 # =====================================================
 # LEITURA DOS DADOS
@@ -35,6 +33,9 @@ metricas = pd.read_csv(
     "dados/metricas_validacao.csv"
 )
 
+validacao = pd.read_csv(
+    "dados/validacao_2025.csv"
+)
 
 # =====================================================
 # MAPA INTERATIVO
@@ -45,7 +46,7 @@ st.subheader(
 )
 
 taxa_min = 0
-taxa_max = 40
+taxa_max = 4
 
 colormap = LinearColormap(
     colors=[
@@ -60,13 +61,8 @@ colormap = LinearColormap(
 )
 
 colormap.caption = (
-    "Taxa prevista por 100 mil habitantes"
+    "Taxa prevista por 10 mil habitantes"
 )
-
-
-# =====================================================
-# CENTRO DO MAPA
-# =====================================================
 
 centro = [
     mapa_2026.geometry.centroid.y.mean(),
@@ -79,11 +75,6 @@ m = folium.Map(
     tiles="CartoDB positron"
 )
 
-
-# =====================================================
-# CAMADA DO MAPA
-# =====================================================
-
 folium.GeoJson(
     mapa_2026,
 
@@ -92,12 +83,12 @@ folium.GeoJson(
         "fillColor":
             "white"
             if (
-                feature["properties"].get(
+                feature["properties"][
                     "taxa_prevista_2026"
-                ) == 0
-                or feature["properties"].get(
+                ] == 0
+                or feature["properties"][
                     "taxa_prevista_2026"
-                ) is None
+                ] is None
             )
             else colormap(
                 feature["properties"][
@@ -121,34 +112,21 @@ folium.GeoJson(
 
         aliases=[
             "Microrregião:",
-            "Taxa prevista 2026:"
+            "Taxa prevista por 10 mil habitantes:"
         ],
 
-        localize=True,
-
-        sticky=False
+        localize=True
     )
 
 ).add_to(m)
 
-
-# =====================================================
-# LEGENDA
-# =====================================================
-
 colormap.add_to(m)
-
-
-# =====================================================
-# EXIBIR MAPA
-# =====================================================
 
 st_folium(
     m,
     use_container_width=True,
     height=700
 )
-
 
 # =====================================================
 # VALIDAÇÃO
@@ -163,100 +141,106 @@ st.header(
 st.write(
     """
     Antes da realização da predição para 2026,
-    o modelo foi submetido a uma validação temporal.
+    o modelo foi validado utilizando dados observados
+    nos anos de 2023, 2024 e 2025.
 
-    Em cada etapa, foram utilizados apenas os dados
-    disponíveis nos anos anteriores para realizar a
-    previsão do ano subsequente. O procedimento foi
-    aplicado aos anos de 2023, 2024 e 2025, permitindo
-    avaliar o desempenho do modelo em diferentes
-    períodos do histórico analisado.
+    Para isso, foi realizada uma validação temporal
+    do tipo walk-forward, na qual o modelo foi treinado
+    utilizando apenas informações disponíveis antes de
+    cada ano de teste. As taxas previstas foram então
+    comparadas com os valores efetivamente observados.
     """
 )
 
-
 # =====================================================
-# MÉTRICAS POR ANO
+# MÉTRICAS
 # =====================================================
 
 st.subheader(
     "Métricas de validação"
 )
 
+# Caso o CSV possua uma linha para cada ano,
+# serão apresentadas as métricas de cada período.
 
-# arredondamento apenas para exibição
-metricas_exibicao = metricas.copy()
+for _, linha in metricas.iterrows():
 
-metricas_exibicao["mae"] = (
-    metricas_exibicao["mae"].round(2)
-)
+    ano = int(linha["ANO"])
 
-metricas_exibicao["mape"] = (
-    metricas_exibicao["mape"].round(1)
-)
+    st.markdown(f"**Ano de teste: {ano}**")
 
-metricas_exibicao["correlacao_spearman"] = (
-    metricas_exibicao[
-        "correlacao_spearman"
-    ].round(2)
-)
+    col1, col2, col3 = st.columns(3)
 
+    with col1:
+        st.metric(
+            "Erro Absoluto Médio (MAE)",
+            f"{linha['MAE']:.2f}"
+        )
+
+    with col2:
+        st.metric(
+            "Erro Percentual Absoluto Médio (MAPE)",
+            f"{linha['MAPE']:.1f}%"
+        )
+
+    with col3:
+        st.metric(
+            "Correlação de Spearman",
+            f"{linha['SPEARMAN']:.2f}"
+        )
 
 # =====================================================
-# TABELA DE MÉTRICAS
+# GRÁFICO REAL X PREVISTO
 # =====================================================
+
+st.subheader(
+    "Comparação entre valores reais e previstos"
+)
+
+fig = px.scatter(
+    validacao,
+    x="taxa_100k",
+    y="taxa_prevista",
+    hover_name="name_micro"
+)
+
+valor_max = max(
+    validacao["taxa_100k"].max(),
+    validacao["taxa_prevista"].max()
+)
+
+fig.add_shape(
+    type="line",
+    x0=0,
+    y0=0,
+    x1=valor_max,
+    y1=valor_max
+)
+
+fig.update_layout(
+    xaxis_title="Taxa real por 10 mil habitantes",
+    yaxis_title="Taxa prevista por 10 mil habitantes",
+    height=600
+)
+
+st.plotly_chart(
+    fig,
+    use_container_width=True
+)
+
+# =====================================================
+# TABELA COMPLETA
+# =====================================================
+
+st.subheader(
+    "Tabela completa de validação"
+)
 
 st.dataframe(
-    metricas_exibicao.rename(
-        columns={
-            "ano_teste": "Ano",
-            "n": "N",
-            "mae": "MAE",
-            "mape": "MAPE (%)",
-            "correlacao_spearman":
-                "Correlação de Spearman"
-        }
+    validacao.sort_values(
+        "taxa_prevista",
+        ascending=False
     ),
     use_container_width=True,
     hide_index=True
 )
-
-
-# =====================================================
-# DESTAQUES DA VALIDAÇÃO
-# =====================================================
-
-col1, col2, col3 = st.columns(3)
-
-with col1:
-
-    mae_medio = metricas["mae"].mean()
-
-    st.metric(
-        "MAE médio",
-        f"{mae_medio:.2f}"
-    )
-
-
-with col2:
-
-    mape_medio = metricas["mape"].mean()
-
-    st.metric(
-        "MAPE médio",
-        f"{mape_medio:.1f}%"
-    )
-
-
-with col3:
-
-    spearman_medio = (
-        metricas[
-            "correlacao_spearman"
-        ].mean()
-    )
-
-    st.metric(
-        "Spearman médio",
-        f"{spearman_medio:.2f}"
-    )
