@@ -31,6 +31,28 @@ heat_amparo = pd.read_csv("dados/heat_amparo.csv")
 heat_profissao = pd.read_csv("dados/heat_profissao.csv")
 
 # ==================================
+# CONFIG PADRÃO DO PLOTLY (SEM ZOOM POR TOQUE)
+#
+# fixedrange=True nos dois eixos impede o pinch-zoom no
+# celular (e o arrasto de zoom no desktop). Como o gráfico
+# não entra em estado de "zoom", também não existe risco
+# de ficar preso numa versão ampliada sem o botão de reset.
+# ==================================
+
+PLOTLY_CONFIG = {
+    "displayModeBar": False,
+    "scrollZoom": False,
+    "doubleClick": False
+}
+
+
+def travar_zoom(fig):
+    fig.update_xaxes(fixedrange=True)
+    fig.update_yaxes(fixedrange=True)
+    return fig
+
+
+# ==================================
 # FILTROS GERAIS (OPÇÃO 1: SLIDER DE INTERVALO)
 # ==================================
 with st.container(border=True):
@@ -115,10 +137,12 @@ with aba1:
         tickvals=anos_selecionados
     )
 
+    fig = travar_zoom(fig)
+
     st.plotly_chart(
         fig,
         use_container_width=True,
-        config={"displayModeBar": False}
+        config=PLOTLY_CONFIG
     )
 
 # ==================================
@@ -181,10 +205,12 @@ with aba2:
         tickvals=anos_selecionados
     )
 
+    fig = travar_zoom(fig)
+
     st.plotly_chart(
         fig,
         use_container_width=True,
-        config={"displayModeBar": False}
+        config=PLOTLY_CONFIG
     )
 
 # ==================================
@@ -247,10 +273,12 @@ with aba3:
         tickvals=anos_selecionados
     )
 
+    fig = travar_zoom(fig)
+
     st.plotly_chart(
         fig,
         use_container_width=True,
-        config={"displayModeBar": False}
+        config=PLOTLY_CONFIG
     )
 
 # ==================================
@@ -359,10 +387,12 @@ with aba_h1:
         )
     )
 
+    fig = travar_zoom(fig)
+
     st.plotly_chart(
         fig,
         use_container_width=True,
-        config={"displayModeBar": False}
+        config=PLOTLY_CONFIG
     )
 
 # ==================================
@@ -414,10 +444,12 @@ with aba_h2:
         )
     )
 
+    fig = travar_zoom(fig)
+
     st.plotly_chart(
         fig,
         use_container_width=True,
-        config={"displayModeBar": False}
+        config=PLOTLY_CONFIG
     )
 
 # ==================================
@@ -469,8 +501,10 @@ with aba_h3:
         )
     )
 
+    fig = travar_zoom(fig)
+
     st.plotly_chart(
         fig,
         use_container_width=True,
-        config={"displayModeBar": False}
+        config=PLOTLY_CONFIG
     )
