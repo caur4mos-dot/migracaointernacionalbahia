@@ -1,116 +1,279 @@
 import streamlit as st
+import pandas as pd
+import geopandas as gpd
+import folium
+import pyreadr
 
-st.set_page_config(
-    page_title="Migração Internacional na Bahia",
-    page_icon="🌎",
-    layout="wide"
-)
+from branca.colormap import LinearColormap
+from streamlit_folium import st_folium
 
-# Título principal
 
-st.markdown(
+# =====================================================
+# CONFIGURAÇÃO DA PÁGINA
+# =====================================================
+
+st.title("Predição dos Fluxos Migratórios para 2026")
+
+st.write(
     """
-    <h1 style="text-align: center;">
-        Análise temporal, espacial e sociodemográfica da
-        migração internacional regularizada na Bahia entre
-        2021 e 2025 utilizando Inteligência Artificial
-        para predição de 2026
-    </h1>
-    """,
-    unsafe_allow_html=True
-)
-
-# Texto introdutório e seções
-
-st.markdown(
-    """
-    <div style="
-        max-width: 1400px;
-        margin-left: 20px;
-        margin-right: 20px;
-        font-size: 18px;
-    ">
-        <p style="text-align: justify;">
-            Este site apresenta análises dos fluxos migratórios
-            internacionais regularizados na Bahia utilizando dados
-            do SISMIGRA com o objetivo de compreender os padrões
-            migratórios e apoiar a gestão da Bahia no fortalecimento
-            de políticas públicas de acolhimento, regularização
-            documental, inclusão social, emprego, educação e
-            planejamento territorial.
-        </p>
-
-        <p style="text-align: justify;">
-            O estudo está alinhado à Lei de Migração nº 13.445/2017
-            e aos Objetivos de Desenvolvimento Sustentável (ODS)
-            10.7 e 16, que preveem a facilitação de uma migração
-            segura e regular, bem como o fortalecimento de
-            instituições eficazes e do acesso à justiça.
-        </p>
-
-        <h3>Seções</h3>
-
-        <ul>
-            <li>Perfil Sociodemográfico</li>
-            <li>Visualização Espacial</li>
-            <li>Predição dos Fluxos Migratórios</li>
-        </ul>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
-
-# Linha divisória
-
-st.markdown("---")
-
-# Logos
-
-col1, col2, col3 = st.columns(3)
-
-with col1:
-    st.image(
-        "SDG-icon-PT-RGB-10-1.jpg",
-        width=250
-    )
-
-with col2:
-    st.image(
-        "Design sem nome(6).png",
-        width=350
-    )
-
-with col3:
-    st.image(
-        "Objetivo_Desenvolvimento_Sustentável_16_PT.jpg",
-        width=250
-    )
-
-# Desenvolvedores
-
-st.markdown(
-    """
-    ### Desenvolvedores
-
-    - Cauã Ramos Santos Oliveira
-    - Denise Nunes Viola
+    Esta seção apresenta a predição da taxa de migrantes
+    internacionais regularizados por 10 mil habitantes
+    nas microrregiões da Bahia para o ano de 2026.
     """
 )
 
-# Fotos
 
-col1, col2 = st.columns(2)
+# =====================================================
+# LEITURA DOS DADOS
+# =====================================================
 
-with col1:
-    st.image(
-        "WhatsApp Image 2026-06-05 at 15.10.02.jpeg",
-        width=400
+mapa_2026 = gpd.read_file(
+    "dados/mapa_predicao_2026.geojson"
+)
+
+# Leitura do arquivo RDS com as métricas
+resultado_rds = pyreadr.read_r(
+    "dados/metricas_validacao_2023_2025.rds"
+)
+
+metricas = list(resultado_rds.values())[0]
+
+
+# =====================================================
+# PADRONIZAÇÃO DOS NOMES DAS COLUNAS
+# =====================================================
+
+metricas.columns = [
+    str(col).strip().lower()
+    for col in metricas.columns
+]
+
+
+# Caso as colunas estejam com nomes diferentes,
+# padroniza para os nomes utilizados na página.
+
+metricas = metricas.rename(
+    columns={
+        "ano_teste": "ano",
+        "correlacao_spearman": "spearman",
+        "mae": "mae",
+        "mape": "mape"
+    }
+)
+
+
+# =====================================================
+# MAPA INTERATIVO
+# =====================================================
+
+st.subheader(
+    "Mapa Interativo da Predição para 2026"
+)
+
+taxa_min = 0
+taxa_max = 4
+
+
+colormap = LinearColormap(
+    colors=[
+        "#F2F2F2",
+        "#FFFF00",
+        "#F5E400",
+        "#FFA500",
+        "#FF0000"
+    ],
+    vmin=taxa_min,
+    vmax=taxa_max
+)
+
+colormap.caption = (
+    "Taxa prevista por 10 mil habitantes"
+)
+
+
+# =====================================================
+# CENTRO DO MAPA
+# =====================================================
+
+# Garante que o mapa esteja em latitude/longitude
+
+mapa_2026 = mapa_2026.to_crs(epsg=4326)
+
+centro = [
+    mapa_2026.geometry.centroid.y.mean(),
+    mapa_2026.geometry.centroid.x.mean()
+]
+
+
+# =====================================================
+# CONSTRUÇÃO DO MAPA
+# =====================================================
+
+m = folium.Map(
+    location=centro,
+    zoom_start=6,
+    tiles="CartoDB positron"
+)
+
+
+folium.GeoJson(
+    mapa_2026,
+
+    style_function=lambda feature: {
+
+        "fillColor":
+            "white"
+            if (
+                feature["properties"].get(
+                    "taxa_prevista_2026"
+                ) is None
+                or feature["properties"].get(
+                    "taxa_prevista_2026"
+                ) == 0
+            )
+            else colormap(
+                feature["properties"][
+                    "taxa_prevista_2026"
+                ]
+            ),
+
+        "color": "black",
+
+        "weight": 1,
+
+        "fillOpacity": 1
+    },
+
+    tooltip=folium.GeoJsonTooltip(
+
+        fields=[
+            "name_micro",
+            "taxa_prevista_2026"
+        ],
+
+        aliases=[
+            "Microrregião:",
+            "Taxa prevista por 10 mil habitantes:"
+        ],
+
+        localize=True,
+
+        sticky=False
     )
 
-with col2:
-    st.image(
-        "117146658_326983188474224_7519955368301025113_n.jpg",
-        width=400
+).add_to(m)
+
+
+colormap.add_to(m)
+
+
+# =====================================================
+# EXIBIÇÃO DO MAPA
+# =====================================================
+
+st_folium(
+    m,
+    use_container_width=True,
+    height=700
+)
+
+
+# =====================================================
+# VALIDAÇÃO DO MODELO
+# =====================================================
+
+st.divider()
+
+st.header(
+    "Validação do Modelo"
+)
+
+st.write(
+    """
+    Antes da realização da predição para 2026,
+    o modelo foi submetido a uma validação temporal
+    do tipo walk-forward, utilizando os anos de 2023,
+    2024 e 2025 como períodos de teste.
+
+    Em cada etapa, o modelo foi treinado utilizando
+    exclusivamente informações disponíveis nos anos
+    anteriores ao período de teste. As taxas previstas
+    foram então comparadas com os valores efetivamente
+    observados.
+    """
+)
+
+
+# =====================================================
+# MÉTRICAS DE VALIDAÇÃO
+# =====================================================
+
+st.subheader(
+    "Métricas de validação"
+)
+
+
+# Verifica se a coluna de ano existe
+
+if "ano" not in metricas.columns:
+
+    st.error(
+        "A coluna de ano não foi encontrada no arquivo de métricas."
     )
 
-st.markdown("---")
+else:
+
+    for _, linha in metricas.iterrows():
+
+        ano = int(linha["ano"])
+
+        st.markdown(
+            f"### Ano de teste: {ano}"
+        )
+
+        col1, col2, col3 = st.columns(3)
+
+
+        # ---------------------------------------------
+        # MAE
+        # ---------------------------------------------
+
+        with col1:
+
+            if "mae" in metricas.columns:
+
+                st.metric(
+                    "Erro Absoluto Médio (MAE)",
+                    f"{float(linha['mae']):.2f}"
+                )
+
+
+        # ---------------------------------------------
+        # MAPE
+        # ---------------------------------------------
+
+        with col2:
+
+            if "mape" in metricas.columns:
+
+                st.metric(
+                    "Erro Percentual Absoluto Médio (MAPE)",
+                    f"{float(linha['mape']):.1f}%"
+                )
+
+
+        # ---------------------------------------------
+        # SPEARMAN
+        # ---------------------------------------------
+
+        with col3:
+
+            if "spearman" in metricas.columns:
+
+                st.metric(
+                    "Correlação de Spearman",
+                    f"{float(linha['spearman']):.2f}"
+                )
+
+
+        st.divider()
