@@ -2,7 +2,7 @@ import streamlit as st
 
 st.set_page_config(
     page_title="Migração Internacional na Bahia",
-    page_icon="🌎",
+    page_icon="",
     layout="wide"
 )
 
@@ -135,10 +135,6 @@ st.markdown(
     /* Botão 3 — amarelo/dourado */
     .st-key-btn_predicao div[data-testid="stPageLink"] a {
         background-color: #F2B134 !important;
-    }
-
-    .st-key-btn_predicao div[data-testid="stPageLink"] p {
-        color: #333795 !important;
     }
 
     </style>
