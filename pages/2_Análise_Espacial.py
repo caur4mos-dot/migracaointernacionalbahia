@@ -15,15 +15,16 @@ st.title("Distribuição Espacial")
 
 
 # =========================================================
-# FUNÇÃO PARA CARREGAR GEOJSON
+# CORES
 # =========================================================
 
-@st.cache_data
-def carregar_mapa(caminho):
-
-    mapa = gpd.read_file(caminho)
-
-    return mapa.to_crs(4326)
+CORES = [
+    "#deebf7",
+    "#9ecae1",
+    "#3182bd",
+    "#6a00a8",
+    "#3f007d"
+]
 
 
 # =========================================================
@@ -33,43 +34,99 @@ def carregar_mapa(caminho):
 st.subheader("Limitação dos dados")
 
 st.write(
-"""
-Antes da visualização espacial, é importante destacar a elevada
-quantidade de registros sem especificação do município de residência.
-Essa limitação resulta em perda parcial de informações espaciais,
-uma vez que parte dos registros não pode ser adequadamente
-territorializada.
-"""
+    """
+    Antes da visualização espacial, é importante destacar a elevada
+    quantidade de registros sem especificação do município de residência.
+    Essa limitação resulta em perda parcial de informações espaciais,
+    uma vez que parte dos registros não pode ser adequadamente
+    territorializada.
+    """
 )
+
 
 @st.cache_data
 def carregar_nao_especificado():
 
-    return pd.read_csv(
+    dados = pd.read_csv(
         "dados/nao_especificado_municipio.csv"
     )
 
+    dados = dados.rename(
+        columns={
+            "ano": "Ano",
+            "total_registros": "Total de registros",
+            "nao_especificado": "Não especificado",
+            "percentual": "Percentual (%)"
+        }
+    )
+
+    dados["Percentual (%)"] = (
+        dados["Percentual (%)"].astype(str) + "%"
+    )
+
+    return dados
+
 
 nao_esp = carregar_nao_especificado()
-
-nao_esp = nao_esp.rename(
-    columns={
-        "ano": "Ano",
-        "total_registros": "Total de registros",
-        "nao_especificado": "Não especificado",
-        "percentual": "Percentual (%)"
-    }
-)
-
-nao_esp["Percentual (%)"] = (
-    nao_esp["Percentual (%)"].astype(str) + "%"
-)
 
 st.dataframe(
     nao_esp,
     use_container_width=True,
     hide_index=True
 )
+
+
+# =========================================================
+# CARREGAMENTO DOS MAPAS
+# =========================================================
+
+@st.cache_data
+def carregar_mapas():
+
+    mapas = {}
+
+    for ano in [2021, 2022, 2023, 2024, 2025]:
+
+        caminho = f"dados/mapa_{ano}.geojson"
+
+        mapa = gpd.read_file(caminho)
+
+        # Garante latitude/longitude
+        mapa = mapa.to_crs(epsg=4326)
+
+        mapas[ano] = mapa
+
+    return mapas
+
+
+mapas = carregar_mapas()
+
+
+# =========================================================
+# TODOS OS MAPAS JUNTOS
+# =========================================================
+
+@st.cache_data
+def preparar_dados_globais(mapas):
+
+    todos = pd.concat(
+        [
+            mapas[2021],
+            mapas[2022],
+            mapas[2023],
+            mapas[2024],
+            mapas[2025]
+        ],
+        ignore_index=True
+    )
+
+    taxa_min = todos["taxa_100k"].min()
+    taxa_max = todos["taxa_100k"].max()
+
+    return todos, taxa_min, taxa_max
+
+
+todos, taxa_min, taxa_max = preparar_dados_globais(mapas)
 
 
 # =========================================================
@@ -82,6 +139,7 @@ st.subheader(
     "Mapa interativo das microrregiões"
 )
 
+
 ano_escolhido = st.radio(
     "Selecione o ano",
     [2021, 2022, 2023, 2024, 2025],
@@ -90,71 +148,7 @@ ano_escolhido = st.radio(
 
 
 # =========================================================
-# CAMINHOS DOS MAPAS
-# =========================================================
-
-arquivos = {
-    2021: "dados/mapa_2021.geojson",
-    2022: "dados/mapa_2022.geojson",
-    2023: "dados/mapa_2023.geojson",
-    2024: "dados/mapa_2024.geojson",
-    2025: "dados/mapa_2025.geojson"
-}
-
-
-# =========================================================
-# CORES
-# =========================================================
-
-cores = [
-    "#deebf7",
-    "#9ecae1",
-    "#3182bd",
-    "#6a00a8",
-    "#3f007d"
-]
-
-
-# =========================================================
-# CARREGAR MAPAS
-# =========================================================
-
-@st.cache_data
-def carregar_todos_mapas():
-
-    mapas = {}
-
-    for ano, caminho in arquivos.items():
-
-        mapas[ano] = carregar_mapa(caminho)
-
-    return mapas
-
-
-mapas = carregar_todos_mapas()
-
-
-# =========================================================
-# LIMITES GLOBAIS
-# =========================================================
-
-todos = pd.concat(
-    [
-        mapas[2021],
-        mapas[2022],
-        mapas[2023],
-        mapas[2024],
-        mapas[2025]
-    ],
-    ignore_index=True
-)
-
-taxa_min = todos["taxa_100k"].min()
-taxa_max = todos["taxa_100k"].max()
-
-
-# =========================================================
-# MAPA DO ANO SELECIONADO
+# MAPA SELECIONADO
 # =========================================================
 
 mapa = mapas[ano_escolhido]
@@ -165,7 +159,7 @@ mapa = mapas[ano_escolhido]
 # =========================================================
 
 colormap = cm.LinearColormap(
-    colors=cores,
+    colors=CORES,
     vmin=taxa_min,
     vmax=taxa_max
 )
@@ -197,7 +191,7 @@ m = folium.Map(
 
 
 # =========================================================
-# CAMADA DO MAPA
+# CAMADA
 # =========================================================
 
 folium.GeoJson(
@@ -209,8 +203,8 @@ folium.GeoJson(
         "fillColor": (
             "white"
             if (
-                feature["properties"]["taxa_100k"] is None
-                or feature["properties"]["taxa_100k"] == 0
+                feature["properties"].get("taxa_100k") is None
+                or feature["properties"].get("taxa_100k") == 0
             )
             else colormap(
                 feature["properties"]["taxa_100k"]
@@ -258,7 +252,7 @@ colormap.add_to(m)
 
 st_folium(
     m,
-    use_container_width=True,
+    width=None,
     height=700
 )
 
@@ -275,87 +269,80 @@ st.subheader(
 
 
 # =========================================================
-# JUNTAR OS MAPAS
+# CALCULAR MÉDIA
 # =========================================================
 
-todos_media = pd.concat(
-    [
-        mapas[2021],
-        mapas[2022],
-        mapas[2023],
-        mapas[2024],
-        mapas[2025]
-    ],
-    ignore_index=True
-)
+@st.cache_data
+def calcular_media(todos):
 
+    media = (
+        todos
+        .groupby("name_micro")
+        .agg(
+            media_migrantes=(
+                "total_migrantes",
+                "mean"
+            ),
 
-# =========================================================
-# MÉDIA POR MICRORREGIÃO
-# =========================================================
+            media_pop=(
+                "populacao",
+                "mean"
+            ),
 
-media = (
-    todos_media
-    .groupby("name_micro")
-    .agg(
-        media_migrantes=(
-            "total_migrantes",
-            "mean"
-        ),
-
-        media_pop=(
-            "populacao",
-            "mean"
-        ),
-
-        media_taxa=(
-            "taxa_100k",
-            "mean"
+            media_taxa=(
+                "taxa_100k",
+                "mean"
+            )
         )
+        .reset_index()
     )
-    .reset_index()
-)
+
+    return media
+
+
+media = calcular_media(todos)
 
 
 # =========================================================
 # GEOMETRIA
 # =========================================================
 
-geometria = mapas[2025][
-    [
-        "name_micro",
-        "geometry"
-    ]
-]
+@st.cache_data
+def construir_mapa_media(mapas, media):
+
+    geometria = mapas[2025][
+        [
+            "name_micro",
+            "geometry"
+        ]
+    ].copy()
+
+    mapa_media = geometria.merge(
+        media,
+        on="name_micro",
+        how="left"
+    )
+
+    mapa_media["media_taxa_plot"] = (
+        mapa_media["media_taxa"]
+    )
+
+    mapa_media.loc[
+        mapa_media["media_taxa_plot"] == 0,
+        "media_taxa_plot"
+    ] = None
+
+    return mapa_media
 
 
-# =========================================================
-# UNIR DADOS + GEOMETRIA
-# =========================================================
-
-mapa_media = geometria.merge(
-    media,
-    on="name_micro",
-    how="left"
+mapa_media = construir_mapa_media(
+    mapas,
+    media
 )
 
 
 # =========================================================
-# ZEROS COMO BRANCO
-# =========================================================
-
-mapa_media["media_taxa_plot"] = (
-    mapa_media["media_taxa"]
-)
-
-mapa_media.loc[
-    mapa_media["media_taxa_plot"] == 0,
-    "media_taxa_plot"
-] = None
-
-
-# =========================================================
-# LIMITES DA ESCALA
+# LIMITES DA MÉDIA
 # =========================================================
 
 taxa_min_media = (
@@ -372,11 +359,11 @@ taxa_max_media = (
 
 
 # =========================================================
-# ESCALA DE CORES
+# PALETA DA MÉDIA
 # =========================================================
 
 colormap_media = cm.LinearColormap(
-    colors=cores,
+    colors=CORES,
     vmin=taxa_min_media,
     vmax=taxa_max_media
 )
@@ -387,10 +374,10 @@ colormap_media.caption = (
 
 
 # =========================================================
-# CENTRO DO MAPA
+# CENTRO
 # =========================================================
 
-centro = [
+centro_media = [
     mapa_media.geometry.centroid.y.mean(),
     mapa_media.geometry.centroid.x.mean()
 ]
@@ -401,7 +388,7 @@ centro = [
 # =========================================================
 
 m_media = folium.Map(
-    location=centro,
+    location=centro_media,
     zoom_start=6,
     tiles="CartoDB positron"
 )
@@ -411,7 +398,7 @@ m_media = folium.Map(
 # ESTILO
 # =========================================================
 
-def estilo(feature):
+def estilo_media(feature):
 
     valor = feature["properties"]["media_taxa_plot"]
 
@@ -458,10 +445,15 @@ tooltip_media = folium.GeoJsonTooltip(
 # =========================================================
 
 folium.GeoJson(
+
     mapa_media,
-    style_function=estilo,
+
+    style_function=estilo_media,
+
     tooltip=tooltip_media,
+
     zoom_on_click=False
+
 ).add_to(m_media)
 
 
