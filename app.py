@@ -81,7 +81,7 @@ st.markdown(
 
 
 # =========================================================
-# BOTÕES DAS SEÇÕES
+# BOTÕES
 # =========================================================
 
 col1, col2, col3 = st.columns(3)
@@ -108,7 +108,7 @@ with col2:
 with col3:
 
     st.page_link(
-        "pages/3_Predicao.py",
+        "pages/3_Predição.py",
         label="🤖  Predição dos Fluxos Migratórios",
         icon="🤖"
     )
