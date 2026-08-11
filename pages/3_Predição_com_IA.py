@@ -24,42 +24,57 @@ st.write(
 
 
 # =====================================================
-# LEITURA DOS DADOS
+# LEITURA DO MAPA
 # =====================================================
 
-mapa_2026 = gpd.read_file(
-    "dados/mapa_predicao_2026.geojson"
-)
+@st.cache_data
+def carregar_mapa_2026():
 
-# Leitura do arquivo RDS com as métricas
-resultado_rds = pyreadr.read_r(
-    "dados/metricas_validacao_2023_2025.rds"
-)
+    mapa = gpd.read_file(
+        "dados/mapa_predicao_2026.geojson"
+    )
 
-metricas = list(resultado_rds.values())[0]
+    return mapa.to_crs(epsg=4326)
+
+
+mapa_2026 = carregar_mapa_2026()
 
 
 # =====================================================
-# PADRONIZAÇÃO DOS NOMES DAS COLUNAS
+# LEITURA DAS MÉTRICAS
 # =====================================================
 
-metricas.columns = [
-    str(col).strip().lower()
-    for col in metricas.columns
-]
+@st.cache_data
+def carregar_metricas():
+
+    resultado_rds = pyreadr.read_r(
+        "dados/metricas_validacao_2023_2025.rds"
+    )
+
+    metricas = list(resultado_rds.values())[0]
+
+    # Padronização dos nomes das colunas
+
+    metricas.columns = [
+        str(col).strip().lower()
+        for col in metricas.columns
+    ]
+
+    # Padronização dos nomes utilizados na página
+
+    metricas = metricas.rename(
+        columns={
+            "ano_teste": "ano",
+            "correlacao_spearman": "spearman",
+            "mae": "mae",
+            "mape": "mape"
+        }
+    )
+
+    return metricas
 
 
-# Caso as colunas estejam com nomes diferentes,
-# padroniza para os nomes utilizados na página.
-
-metricas = metricas.rename(
-    columns={
-        "ano_teste": "ano",
-        "correlacao_spearman": "spearman",
-        "mae": "mae",
-        "mape": "mape"
-    }
-)
+metricas = carregar_metricas()
 
 
 # =====================================================
@@ -69,6 +84,7 @@ metricas = metricas.rename(
 st.subheader(
     "Mapa Interativo da Predição para 2026"
 )
+
 
 taxa_min = 0
 taxa_max = 4
@@ -86,6 +102,7 @@ colormap = LinearColormap(
     vmax=taxa_max
 )
 
+
 colormap.caption = (
     "Taxa prevista por 10 mil habitantes"
 )
@@ -94,10 +111,6 @@ colormap.caption = (
 # =====================================================
 # CENTRO DO MAPA
 # =====================================================
-
-# Garante que o mapa esteja em latitude/longitude
-
-mapa_2026 = mapa_2026.to_crs(epsg=4326)
 
 centro = [
     mapa_2026.geometry.centroid.y.mean(),
@@ -188,6 +201,7 @@ st.header(
     "Validação do Modelo"
 )
 
+
 st.write(
     """
     Antes da realização da predição para 2026,
@@ -212,8 +226,6 @@ st.subheader(
     "Métricas de validação"
 )
 
-
-# Verifica se a coluna de ano existe
 
 if "ano" not in metricas.columns:
 
