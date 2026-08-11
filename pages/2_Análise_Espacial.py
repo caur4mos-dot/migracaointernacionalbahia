@@ -8,7 +8,7 @@ from streamlit_folium import st_folium
 
 
 # =========================================================
-# TÍTULO
+# CONFIGURAÇÃO
 # =========================================================
 
 st.title("Distribuição Espacial")
@@ -44,6 +44,10 @@ st.write(
 )
 
 
+# =========================================================
+# TABELA DE REGISTROS SEM MUNICÍPIO
+# =========================================================
+
 @st.cache_data
 def carregar_nao_especificado():
 
@@ -77,7 +81,24 @@ st.dataframe(
 
 
 # =========================================================
-# CARREGAMENTO DOS MAPAS
+# CAMINHOS DOS MAPAS
+# =========================================================
+
+ARQUIVOS_MAPAS = {
+    2021: "dados/mapa_2021.geojson",
+    2022: "dados/mapa_2022.geojson",
+    2023: "dados/mapa_2023.geojson",
+    2024: "dados/mapa_2024.geojson",
+    2025: "dados/mapa_2025.geojson"
+}
+
+
+# =========================================================
+# CARREGAR MAPAS
+#
+# IMPORTANTE:
+# O CACHE recebe apenas os caminhos dos arquivos.
+# Não recebe GeoDataFrames.
 # =========================================================
 
 @st.cache_data
@@ -85,16 +106,12 @@ def carregar_mapas():
 
     mapas = {}
 
-    for ano in [2021, 2022, 2023, 2024, 2025]:
+    for ano, caminho in ARQUIVOS_MAPAS.items():
 
-        caminho = f"dados/mapa_{ano}.geojson"
+        mapas[ano] = gpd.read_file(caminho)
 
-        mapa = gpd.read_file(caminho)
-
-        # Garante latitude/longitude
-        mapa = mapa.to_crs(epsg=4326)
-
-        mapas[ano] = mapa
+        # Garantir latitude/longitude
+        mapas[ano] = mapas[ano].to_crs(4326)
 
     return mapas
 
@@ -103,11 +120,11 @@ mapas = carregar_mapas()
 
 
 # =========================================================
-# TODOS OS MAPAS JUNTOS
+# PREPARAR ESCALA GLOBAL
 # =========================================================
 
 @st.cache_data
-def preparar_dados_globais(mapas):
+def preparar_dados_globais():
 
     todos = pd.concat(
         [
@@ -123,10 +140,10 @@ def preparar_dados_globais(mapas):
     taxa_min = todos["taxa_100k"].min()
     taxa_max = todos["taxa_100k"].max()
 
-    return todos, taxa_min, taxa_max
+    return taxa_min, taxa_max
 
 
-todos, taxa_min, taxa_max = preparar_dados_globais(mapas)
+taxa_min, taxa_max = preparar_dados_globais()
 
 
 # =========================================================
@@ -170,7 +187,7 @@ colormap.caption = (
 
 
 # =========================================================
-# CENTRO DO MAPA
+# CENTRO
 # =========================================================
 
 centro = [
@@ -203,8 +220,8 @@ folium.GeoJson(
         "fillColor": (
             "white"
             if (
-                feature["properties"].get("taxa_100k") is None
-                or feature["properties"].get("taxa_100k") == 0
+                feature["properties"]["taxa_100k"] is None
+                or feature["properties"]["taxa_100k"] == 0
             )
             else colormap(
                 feature["properties"]["taxa_100k"]
@@ -247,12 +264,12 @@ colormap.add_to(m)
 
 
 # =========================================================
-# EXIBIR MAPA
+# EXIBIR
 # =========================================================
 
 st_folium(
     m,
-    width=None,
+    use_container_width=True,
     height=700
 )
 
@@ -273,7 +290,21 @@ st.subheader(
 # =========================================================
 
 @st.cache_data
-def calcular_media(todos):
+def calcular_media():
+
+    todos = pd.concat(
+        [
+            mapas[2021]
+            for 2021 in [
+                2021,
+                2022,
+                2023,
+                2024,
+                2025
+            ]
+        ],
+        ignore_index=True
+    )
 
     media = (
         todos
@@ -297,25 +328,12 @@ def calcular_media(todos):
         .reset_index()
     )
 
-    return media
-
-
-media = calcular_media(todos)
-
-
-# =========================================================
-# GEOMETRIA
-# =========================================================
-
-@st.cache_data
-def construir_mapa_media(mapas, media):
-
     geometria = mapas[2025][
         [
             "name_micro",
             "geometry"
         ]
-    ].copy()
+    ]
 
     mapa_media = geometria.merge(
         media,
@@ -323,26 +341,28 @@ def construir_mapa_media(mapas, media):
         how="left"
     )
 
-    mapa_media["media_taxa_plot"] = (
-        mapa_media["media_taxa"]
-    )
-
-    mapa_media.loc[
-        mapa_media["media_taxa_plot"] == 0,
-        "media_taxa_plot"
-    ] = None
-
     return mapa_media
 
 
-mapa_media = construir_mapa_media(
-    mapas,
-    media
-)
+mapa_media = calcular_media()
 
 
 # =========================================================
-# LIMITES DA MÉDIA
+# ZEROS COMO BRANCO
+# =========================================================
+
+mapa_media["media_taxa_plot"] = (
+    mapa_media["media_taxa"]
+)
+
+mapa_media.loc[
+    mapa_media["media_taxa_plot"] == 0,
+    "media_taxa_plot"
+] = None
+
+
+# =========================================================
+# LIMITES
 # =========================================================
 
 taxa_min_media = (
@@ -445,15 +465,10 @@ tooltip_media = folium.GeoJsonTooltip(
 # =========================================================
 
 folium.GeoJson(
-
     mapa_media,
-
     style_function=estilo_media,
-
     tooltip=tooltip_media,
-
     zoom_on_click=False
-
 ).add_to(m_media)
 
 
