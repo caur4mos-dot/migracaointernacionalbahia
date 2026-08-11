@@ -83,9 +83,9 @@ st.markdown("<br>", unsafe_allow_html=True)
 
 aba1, aba2, aba3 = st.tabs(
     [
-        "📈 Evolução Total",
-        "👨👩 Perfil por Sexo",
-        "📋 Classificação Migratória"
+        "Evolução Total",
+        "Perfil por Sexo",
+        "Classificação Migratória"
     ]
 )
 
@@ -286,7 +286,7 @@ with aba3:
 # ==================================
 
 st.markdown("<hr>", unsafe_allow_html=True)
-st.header("📋 Distribuições Percentuais Anuais")
+st.header(" Distribuições Percentuais Anuais")
 
 # ==================================
 # ABAS DOS HEATMAPS
@@ -294,9 +294,9 @@ st.header("📋 Distribuições Percentuais Anuais")
 
 aba_h1, aba_h2, aba_h3 = st.tabs(
     [
-        "🌎 Continente",
-        "📄 Tipologia de Amparo",
-        "💼 Grupo Profissional"
+        "Continente",
+        "Tipologia de Amparo",
+        "Grupo Profissional"
     ]
 )
 
