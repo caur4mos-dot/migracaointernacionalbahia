@@ -82,82 +82,94 @@ st.dataframe(
 
 # =========================================================
 # ARQUIVOS DOS MAPAS
+#
+# ATENÇÃO: apontando para as versões SIMPLIFICADAS
+# (geradas com rmapshaper no R). Mova os arquivos
+# "_simplificado.geojson" da pasta Transferências para
+# dentro de "dados/" antes de rodar o app, ou ajuste os
+# caminhos abaixo para onde eles estiverem.
 # =========================================================
 
 ARQUIVOS_MAPAS = {
-    2021: "dados/mapa_2021.geojson",
-    2022: "dados/mapa_2022.geojson",
-    2023: "dados/mapa_2023.geojson",
-    2024: "dados/mapa_2024.geojson",
-    2025: "dados/mapa_2025.geojson"
+    2021: "dados/mapa_2021_simplificado.geojson",
+    2022: "dados/mapa_2022_simplificado.geojson",
+    2023: "dados/mapa_2023_simplificado.geojson",
+    2024: "dados/mapa_2024_simplificado.geojson",
+    2025: "dados/mapa_2025_simplificado.geojson"
 }
 
 
 # =========================================================
-# CARREGAR OS MAPAS
+# CARREGAR OS MAPAS + CALCULAR MÉDIA
 #
-# O CACHE FICA SOMENTE AQUI.
-# A função não recebe GeoDataFrames como argumentos.
+# TUDO NUMA ÚNICA FUNÇÃO CACHEADA.
+#
+# Antes, calcular_media() rodava de novo a cada rerun
+# do Streamlit (ex: toda vez que o usuário trocava o ano
+# no radio), mesmo sem depender do ano escolhido. Juntando
+# tudo aqui, o groupby/concat só roda uma vez, e fica em
+# cache junto com o carregamento dos geojsons.
 # =========================================================
 
 @st.cache_data
-def carregar_mapas():
+def carregar_mapas_e_media():
 
-    mapa_2021 = gpd.read_file(
-        ARQUIVOS_MAPAS[2021]
-    ).to_crs(4326)
+    mapa_2021 = gpd.read_file(ARQUIVOS_MAPAS[2021]).to_crs(4326)
+    mapa_2022 = gpd.read_file(ARQUIVOS_MAPAS[2022]).to_crs(4326)
+    mapa_2023 = gpd.read_file(ARQUIVOS_MAPAS[2023]).to_crs(4326)
+    mapa_2024 = gpd.read_file(ARQUIVOS_MAPAS[2024]).to_crs(4326)
+    mapa_2025 = gpd.read_file(ARQUIVOS_MAPAS[2025]).to_crs(4326)
 
-    mapa_2022 = gpd.read_file(
-        ARQUIVOS_MAPAS[2022]
-    ).to_crs(4326)
+    mapas = {
+        2021: mapa_2021,
+        2022: mapa_2022,
+        2023: mapa_2023,
+        2024: mapa_2024,
+        2025: mapa_2025
+    }
 
-    mapa_2023 = gpd.read_file(
-        ARQUIVOS_MAPAS[2023]
-    ).to_crs(4326)
+    # ---- escala global ----
 
-    mapa_2024 = gpd.read_file(
-        ARQUIVOS_MAPAS[2024]
-    ).to_crs(4326)
-
-    mapa_2025 = gpd.read_file(
-        ARQUIVOS_MAPAS[2025]
-    ).to_crs(4326)
-
-    return (
-        mapa_2021,
-        mapa_2022,
-        mapa_2023,
-        mapa_2024,
-        mapa_2025
+    todos_taxa = pd.concat(
+        [m[["taxa_100k"]] for m in mapas.values()],
+        ignore_index=True
     )
 
+    taxa_min = todos_taxa["taxa_100k"].min()
+    taxa_max = todos_taxa["taxa_100k"].max()
 
-(
-    mapa_2021,
-    mapa_2022,
-    mapa_2023,
-    mapa_2024,
-    mapa_2025
-) = carregar_mapas()
+    # ---- média 2021-2025 ----
+
+    todos = pd.concat(
+        list(mapas.values()),
+        ignore_index=True
+    )
+
+    media = (
+        todos
+        .groupby("name_micro")
+        .agg(
+            media_migrantes=("total_migrantes", "mean"),
+            media_pop=("populacao", "mean"),
+            media_taxa=("taxa_100k", "mean")
+        )
+        .reset_index()
+    )
+
+    geometria = mapa_2025[["name_micro", "geometry"]]
+
+    mapa_media = geometria.merge(media, on="name_micro", how="left")
+
+    mapa_media["media_taxa_plot"] = mapa_media["media_taxa"]
+    mapa_media.loc[
+        mapa_media["media_taxa_plot"] == 0,
+        "media_taxa_plot"
+    ] = None
+
+    return mapas, taxa_min, taxa_max, mapa_media
 
 
-# =========================================================
-# ESCALA GLOBAL
-# =========================================================
-
-todos = pd.concat(
-    [
-        mapa_2021[["taxa_100k"]],
-        mapa_2022[["taxa_100k"]],
-        mapa_2023[["taxa_100k"]],
-        mapa_2024[["taxa_100k"]],
-        mapa_2025[["taxa_100k"]]
-    ],
-    ignore_index=True
-)
-
-taxa_min = todos["taxa_100k"].min()
-taxa_max = todos["taxa_100k"].max()
+mapas, taxa_min, taxa_max, mapa_media = carregar_mapas_e_media()
 
 
 # =========================================================
@@ -178,18 +190,6 @@ ano_escolhido = st.radio(
 )
 
 
-# =========================================================
-# SELECIONAR MAPA
-# =========================================================
-
-mapas = {
-    2021: mapa_2021,
-    2022: mapa_2022,
-    2023: mapa_2023,
-    2024: mapa_2024,
-    2025: mapa_2025
-}
-
 mapa = mapas[ano_escolhido]
 
 
@@ -209,90 +209,82 @@ colormap.caption = (
 
 
 # =========================================================
-# CENTRO DO MAPA
+# GERAR HTML DO MAPA (CACHEADO POR ANO)
+#
+# Isso evita reconstruir o folium.Map inteiro sempre que o
+# Streamlit re-executa o script (ex: qualquer interação na
+# página). Trocar de ano e voltar não recalcula nada.
 # =========================================================
 
-centro = [
-    mapa.geometry.centroid.y.mean(),
-    mapa.geometry.centroid.x.mean()
-]
+@st.cache_data
+def gerar_html_mapa(ano):
 
+    mapa_ano = mapas[ano]
 
-# =========================================================
-# MAPA FOLIUM
-# =========================================================
+    centro = [
+        mapa_ano.geometry.centroid.y.mean(),
+        mapa_ano.geometry.centroid.x.mean()
+    ]
 
-m = folium.Map(
-    location=centro,
-    zoom_start=6,
-    tiles="CartoDB positron"
-)
-
-
-# =========================================================
-# CAMADA DO MAPA
-# =========================================================
-
-folium.GeoJson(
-
-    mapa,
-
-    style_function=lambda feature: {
-
-        "fillColor": (
-            "white"
-            if (
-                feature["properties"].get("taxa_100k") is None
-                or feature["properties"].get("taxa_100k") == 0
-            )
-            else colormap(
-                feature["properties"]["taxa_100k"]
-            )
-        ),
-
-        "color": "black",
-        "weight": 1,
-        "fillOpacity": 0.9
-    },
-
-    tooltip=folium.GeoJsonTooltip(
-
-        fields=[
-            "name_micro",
-            "total_migrantes",
-            "populacao",
-            "taxa_100k"
-        ],
-
-        aliases=[
-            "Microrregião:",
-            "Migrantes:",
-            "População:",
-            "Taxa por 10 mil:"
-        ],
-
-        localize=True,
-        sticky=False
+    m = folium.Map(
+        location=centro,
+        zoom_start=6,
+        tiles="CartoDB positron"
     )
 
-).add_to(m)
+    folium.GeoJson(
+
+        mapa_ano,
+
+        style_function=lambda feature: {
+
+            "fillColor": (
+                "white"
+                if (
+                    feature["properties"].get("taxa_100k") is None
+                    or feature["properties"].get("taxa_100k") == 0
+                )
+                else colormap(
+                    feature["properties"]["taxa_100k"]
+                )
+            ),
+
+            "color": "black",
+            "weight": 1,
+            "fillOpacity": 0.9
+        },
+
+        tooltip=folium.GeoJsonTooltip(
+
+            fields=[
+                "name_micro",
+                "total_migrantes",
+                "populacao",
+                "taxa_100k"
+            ],
+
+            aliases=[
+                "Microrregião:",
+                "Migrantes:",
+                "População:",
+                "Taxa por 10 mil:"
+            ],
+
+            localize=True,
+            sticky=False
+        )
+
+    ).add_to(m)
+
+    colormap.add_to(m)
+
+    return m.get_root().render()
 
 
-# =========================================================
-# LEGENDA
-# =========================================================
-
-colormap.add_to(m)
-
-
-# =========================================================
-# EXIBIR MAPA
-# =========================================================
-
-st_folium(
-    m,
-    use_container_width=True,
-    height=700
+st.components.v1.html(
+    gerar_html_mapa(ano_escolhido),
+    height=700,
+    scrolling=False
 )
 
 
@@ -307,114 +299,9 @@ st.subheader(
 )
 
 
-# =========================================================
-# CALCULAR MÉDIA
-#
-# IMPORTANTE:
-# Não utilizamos @st.cache_data aqui porque a função
-# recebe GeoDataFrames.
-# =========================================================
+taxa_min_media = mapa_media["media_taxa_plot"].dropna().min()
+taxa_max_media = mapa_media["media_taxa_plot"].dropna().max()
 
-def calcular_media(
-    mapa_2021,
-    mapa_2022,
-    mapa_2023,
-    mapa_2024,
-    mapa_2025
-):
-
-    todos = pd.concat(
-        [
-            mapa_2021,
-            mapa_2022,
-            mapa_2023,
-            mapa_2024,
-            mapa_2025
-        ],
-        ignore_index=True
-    )
-
-    media = (
-        todos
-        .groupby("name_micro")
-        .agg(
-            media_migrantes=(
-                "total_migrantes",
-                "mean"
-            ),
-
-            media_pop=(
-                "populacao",
-                "mean"
-            ),
-
-            media_taxa=(
-                "taxa_100k",
-                "mean"
-            )
-        )
-        .reset_index()
-    )
-
-    geometria = mapa_2025[
-        [
-            "name_micro",
-            "geometry"
-        ]
-    ]
-
-    mapa_media = geometria.merge(
-        media,
-        on="name_micro",
-        how="left"
-    )
-
-    return mapa_media
-
-
-mapa_media = calcular_media(
-    mapa_2021,
-    mapa_2022,
-    mapa_2023,
-    mapa_2024,
-    mapa_2025
-)
-
-
-# =========================================================
-# ZEROS COMO BRANCO
-# =========================================================
-
-mapa_media["media_taxa_plot"] = (
-    mapa_media["media_taxa"]
-)
-
-mapa_media.loc[
-    mapa_media["media_taxa_plot"] == 0,
-    "media_taxa_plot"
-] = None
-
-
-# =========================================================
-# LIMITES DA ESCALA DA MÉDIA
-# =========================================================
-
-taxa_min_media = (
-    mapa_media["media_taxa_plot"]
-    .dropna()
-    .min()
-)
-
-taxa_max_media = (
-    mapa_media["media_taxa_plot"]
-    .dropna()
-    .max()
-)
-
-
-# =========================================================
-# PALETA DA MÉDIA
-# =========================================================
 
 colormap_media = cm.LinearColormap(
     colors=CORES,
@@ -428,99 +315,70 @@ colormap_media.caption = (
 
 
 # =========================================================
-# CENTRO DO MAPA DA MÉDIA
+# GERAR HTML DO MAPA DA MÉDIA (CACHEADO)
 # =========================================================
 
-centro_media = [
-    mapa_media.geometry.centroid.y.mean(),
-    mapa_media.geometry.centroid.x.mean()
-]
+@st.cache_data
+def gerar_html_mapa_media():
 
+    centro_media = [
+        mapa_media.geometry.centroid.y.mean(),
+        mapa_media.geometry.centroid.x.mean()
+    ]
 
-# =========================================================
-# MAPA DA MÉDIA
-# =========================================================
-
-m_media = folium.Map(
-    location=centro_media,
-    zoom_start=6,
-    tiles="CartoDB positron"
-)
-
-
-# =========================================================
-# ESTILO
-# =========================================================
-
-def estilo_media(feature):
-
-    valor = feature["properties"].get(
-        "media_taxa_plot"
+    m_media = folium.Map(
+        location=centro_media,
+        zoom_start=6,
+        tiles="CartoDB positron"
     )
 
-    if valor is None:
-        cor = "white"
-    else:
-        cor = colormap_media(valor)
+    def estilo_media(feature):
 
-    return {
-        "fillColor": cor,
-        "color": "black",
-        "weight": 1,
-        "fillOpacity": 1
-    }
+        valor = feature["properties"].get("media_taxa_plot")
 
+        cor = "white" if valor is None else colormap_media(valor)
 
-# =========================================================
-# TOOLTIP
-# =========================================================
+        return {
+            "fillColor": cor,
+            "color": "black",
+            "weight": 1,
+            "fillOpacity": 1
+        }
 
-tooltip_media = folium.GeoJsonTooltip(
+    tooltip_media = folium.GeoJsonTooltip(
 
-    fields=[
-        "name_micro",
-        "media_migrantes",
-        "media_pop",
-        "media_taxa"
-    ],
+        fields=[
+            "name_micro",
+            "media_migrantes",
+            "media_pop",
+            "media_taxa"
+        ],
 
-    aliases=[
-        "Microrregião:",
-        "Média de migrantes:",
-        "Média populacional:",
-        "Taxa média por 10 mil:"
-    ],
+        aliases=[
+            "Microrregião:",
+            "Média de migrantes:",
+            "Média populacional:",
+            "Taxa média por 10 mil:"
+        ],
 
-    localize=True,
-    sticky=False
-)
+        localize=True,
+        sticky=False
+    )
 
+    folium.GeoJson(
+        mapa_media,
+        style_function=estilo_media,
+        tooltip=tooltip_media,
+        zoom_on_click=False
+    ).add_to(m_media)
 
-# =========================================================
-# CAMADA DO MAPA DA MÉDIA
-# =========================================================
+    colormap_media.add_to(m_media)
 
-folium.GeoJson(
-    mapa_media,
-    style_function=estilo_media,
-    tooltip=tooltip_media,
-    zoom_on_click=False
-).add_to(m_media)
+    return m_media.get_root().render()
 
 
-# =========================================================
-# LEGENDA DA MÉDIA
-# =========================================================
-
-colormap_media.add_to(m_media)
-
-
-# =========================================================
-# EXIBIR MAPA DA MÉDIA
-# =========================================================
-
-st_folium(
-    m_media,
-    use_container_width=True,
-    height=700
+st.components.v1.html(
+    gerar_html_mapa_media(),
+    height=700,
+    scrolling=False
 )
