@@ -6,7 +6,9 @@ st.set_page_config(
     layout="wide"
 )
 
-# Título principal
+# =========================================================
+# TÍTULO PRINCIPAL
+# =========================================================
 
 st.markdown(
     """
@@ -17,7 +19,10 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# Texto introdutório e seções
+
+# =========================================================
+# TEXTO INTRODUTÓRIO
+# =========================================================
 
 st.markdown(
     """
@@ -34,32 +39,66 @@ st.markdown(
     de acolhimento, regularização documental, inclusão social, emprego, educação
     e planejamento territorial.
     </p>
-
     <p style="text-align: justify;">
     O estudo está alinhado à Lei de Migração nº 13.445/2017 e aos Objetivos de
     Desenvolvimento Sustentável (ODS) 10.7 e 16, que preveem a facilitação de uma
     migração segura e regular, bem como o fortalecimento de instituições eficazes
     e do acesso à justiça.
     </p>
-
-    <h3>Seções</h3>
-
-    <ul>
-        <li>Perfil Sociodemográfico</li>
-        <li>Visualização Espacial</li>
-        <li>Predição dos Fluxos Migratórios</li>
-    </ul>
-
     </div>
     """,
     unsafe_allow_html=True
 )
 
-# Linha divisória
+
+# =========================================================
+# BOTÕES DE NAVEGAÇÃO (SEÇÕES)
+#
+# Caminhos conferidos direto no repositório (pasta pages/):
+# 1_Perfil_Sociodemografico.py
+# 2_Análise_Espacial.py
+# 3_Predição_com_IA.py
+# =========================================================
+
+st.markdown("### Seções")
+
+col_a, col_b, col_c = st.columns(3)
+
+with col_a:
+    st.page_link(
+        "pages/1_Perfil_Sociodemografico.py",
+        label="Perfil Sociodemográfico",
+        icon="👤",
+        use_container_width=True
+    )
+
+with col_b:
+    st.page_link(
+        "pages/2_Análise_Espacial.py",
+        label="Visualização Espacial",
+        icon="🗺️",
+        use_container_width=True
+    )
+
+with col_c:
+    st.page_link(
+        "pages/3_Predição_com_IA.py",
+        label="Predição dos Fluxos Migratórios",
+        icon="🤖",
+        use_container_width=True
+    )
+
+
+# =========================================================
+# LINHA DIVISÓRIA
+# =========================================================
 
 st.markdown("---")
 
-# Logos
+
+# =========================================================
+# LOGOS
+# =========================================================
 
 col1, col2, col3 = st.columns(3)
 
@@ -72,18 +111,23 @@ with col2:
 with col3:
     st.image("Objetivo_Desenvolvimento_Sustentável_16_PT.jpg", width=250)
 
-# Desenvolvedores
+
+# =========================================================
+# DESENVOLVEDORES
+# =========================================================
 
 st.markdown(
     """
     ### Desenvolvedores
-
     - Cauã Ramos Santos Oliveira
     - Denise Nunes Viola
     """
 )
 
-# Fotos
+
+# =========================================================
+# FOTOS
+# =========================================================
 
 col1, col2 = st.columns(2)
 
