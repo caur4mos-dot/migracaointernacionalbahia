@@ -5,7 +5,6 @@ import folium
 import pyreadr
 
 from branca.colormap import LinearColormap
-from streamlit_folium import st_folium
 
 
 # =====================================================
@@ -24,42 +23,46 @@ st.write(
 
 
 # =====================================================
-# LEITURA DOS DADOS
+# LEITURA DOS DADOS (CACHEADA)
+#
+# ATENÇÃO: aponta para a versão SIMPLIFICADA do mapa de
+# 2026 (gerada com ms_simplify no R). Mova o arquivo
+# "mapa_predicao_2026_simplificado.geojson" de
+# Transferências para dentro de "dados/", ou ajuste o
+# caminho abaixo.
 # =====================================================
 
-mapa_2026 = gpd.read_file(
-    "dados/mapa_predicao_2026.geojson"
-)
+@st.cache_data
+def carregar_dados():
 
-# Leitura do arquivo RDS com as métricas
-resultado_rds = pyreadr.read_r(
-    "dados/metricas_validacao_2023_2025.rds"
-)
+    mapa = gpd.read_file(
+        "dados/mapa_predicao_2026_simplificado.geojson"
+    ).to_crs(epsg=4326)
 
-metricas = list(resultado_rds.values())[0]
+    resultado_rds = pyreadr.read_r(
+        "dados/metricas_validacao_2023_2025.rds"
+    )
+
+    metricas = list(resultado_rds.values())[0]
+
+    metricas.columns = [
+        str(col).strip().lower()
+        for col in metricas.columns
+    ]
+
+    metricas = metricas.rename(
+        columns={
+            "ano_teste": "ano",
+            "correlacao_spearman": "spearman",
+            "mae": "mae",
+            "mape": "mape"
+        }
+    )
+
+    return mapa, metricas
 
 
-# =====================================================
-# PADRONIZAÇÃO DOS NOMES DAS COLUNAS
-# =====================================================
-
-metricas.columns = [
-    str(col).strip().lower()
-    for col in metricas.columns
-]
-
-
-# Caso as colunas estejam com nomes diferentes,
-# padroniza para os nomes utilizados na página.
-
-metricas = metricas.rename(
-    columns={
-        "ano_teste": "ano",
-        "correlacao_spearman": "spearman",
-        "mae": "mae",
-        "mape": "mape"
-    }
-)
+mapa_2026, metricas = carregar_dados()
 
 
 # =====================================================
@@ -74,107 +77,99 @@ taxa_min = 0
 taxa_max = 4
 
 
-colormap = LinearColormap(
-    colors=[
-        "#F2F2F2",
-        "#FFFF00",
-        "#F5E400",
-        "#FFA500",
-        "#FF0000"
-    ],
-    vmin=taxa_min,
-    vmax=taxa_max
-)
-
-colormap.caption = (
-    "Taxa prevista por 10 mil habitantes"
-)
-
-
 # =====================================================
-# CENTRO DO MAPA
+# GERAR HTML DO MAPA (CACHEADO)
+#
+# Evita reconstruir o folium.Map a cada rerun do
+# Streamlit (ex: qualquer interação na página).
 # =====================================================
 
-# Garante que o mapa esteja em latitude/longitude
+@st.cache_data
+def gerar_html_mapa_2026():
 
-mapa_2026 = mapa_2026.to_crs(epsg=4326)
-
-centro = [
-    mapa_2026.geometry.centroid.y.mean(),
-    mapa_2026.geometry.centroid.x.mean()
-]
-
-
-# =====================================================
-# CONSTRUÇÃO DO MAPA
-# =====================================================
-
-m = folium.Map(
-    location=centro,
-    zoom_start=6,
-    tiles="CartoDB positron"
-)
-
-
-folium.GeoJson(
-    mapa_2026,
-
-    style_function=lambda feature: {
-
-        "fillColor":
-            "white"
-            if (
-                feature["properties"].get(
-                    "taxa_prevista_2026"
-                ) is None
-                or feature["properties"].get(
-                    "taxa_prevista_2026"
-                ) == 0
-            )
-            else colormap(
-                feature["properties"][
-                    "taxa_prevista_2026"
-                ]
-            ),
-
-        "color": "black",
-
-        "weight": 1,
-
-        "fillOpacity": 1
-    },
-
-    tooltip=folium.GeoJsonTooltip(
-
-        fields=[
-            "name_micro",
-            "taxa_prevista_2026"
+    colormap = LinearColormap(
+        colors=[
+            "#F2F2F2",
+            "#FFFF00",
+            "#F5E400",
+            "#FFA500",
+            "#FF0000"
         ],
-
-        aliases=[
-            "Microrregião:",
-            "Taxa prevista por 10 mil habitantes:"
-        ],
-
-        localize=True,
-
-        sticky=False
+        vmin=taxa_min,
+        vmax=taxa_max
     )
 
-).add_to(m)
+    colormap.caption = (
+        "Taxa prevista por 10 mil habitantes"
+    )
+
+    centro = [
+        mapa_2026.geometry.centroid.y.mean(),
+        mapa_2026.geometry.centroid.x.mean()
+    ]
+
+    m = folium.Map(
+        location=centro,
+        zoom_start=6,
+        tiles="CartoDB positron"
+    )
+
+    folium.GeoJson(
+        mapa_2026,
+
+        style_function=lambda feature: {
+
+            "fillColor":
+                "white"
+                if (
+                    feature["properties"].get(
+                        "taxa_prevista_2026"
+                    ) is None
+                    or feature["properties"].get(
+                        "taxa_prevista_2026"
+                    ) == 0
+                )
+                else colormap(
+                    feature["properties"][
+                        "taxa_prevista_2026"
+                    ]
+                ),
+
+            "color": "black",
+
+            "weight": 1,
+
+            "fillOpacity": 1
+        },
+
+        tooltip=folium.GeoJsonTooltip(
+
+            fields=[
+                "name_micro",
+                "taxa_prevista_2026"
+            ],
+
+            aliases=[
+                "Microrregião:",
+                "Taxa prevista por 10 mil habitantes:"
+            ],
+
+            localize=True,
+
+            sticky=False
+        )
+
+    ).add_to(m)
+
+    colormap.add_to(m)
+
+    return m.get_root().render()
 
 
-colormap.add_to(m)
-
-
-# =====================================================
-# EXIBIÇÃO DO MAPA
-# =====================================================
-
-st_folium(
-    m,
-    use_container_width=True,
-    height=700
+st.components.v1.html(
+    gerar_html_mapa_2026(),
+    height=700,
+    scrolling=False
 )
 
 
