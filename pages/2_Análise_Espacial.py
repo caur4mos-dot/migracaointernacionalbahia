@@ -15,24 +15,42 @@ st.title("Distribuição Espacial")
 
 
 # =========================================================
+# FUNÇÃO PARA CARREGAR GEOJSON
+# =========================================================
+
+@st.cache_data
+def carregar_mapa(caminho):
+
+    mapa = gpd.read_file(caminho)
+
+    return mapa.to_crs(4326)
+
+
+# =========================================================
 # LIMITAÇÃO DOS DADOS
 # =========================================================
 
 st.subheader("Limitação dos dados")
 
 st.write(
-    """
-    Antes da visualização espacial, é importante destacar a elevada
-    quantidade de registros sem especificação do município de residência.
-    Essa limitação resulta em perda parcial de informações espaciais,
-    uma vez que parte dos registros não pode ser adequadamente
-    territorializada.
-    """
+"""
+Antes da visualização espacial, é importante destacar a elevada
+quantidade de registros sem especificação do município de residência.
+Essa limitação resulta em perda parcial de informações espaciais,
+uma vez que parte dos registros não pode ser adequadamente
+territorializada.
+"""
 )
 
-nao_esp = pd.read_csv(
-    "dados/nao_especificado_municipio.csv"
-)
+@st.cache_data
+def carregar_nao_especificado():
+
+    return pd.read_csv(
+        "dados/nao_especificado_municipio.csv"
+    )
+
+
+nao_esp = carregar_nao_especificado()
 
 nao_esp = nao_esp.rename(
     columns={
@@ -72,7 +90,7 @@ ano_escolhido = st.radio(
 
 
 # =========================================================
-# ARQUIVOS DOS MAPAS
+# CAMINHOS DOS MAPAS
 # =========================================================
 
 arquivos = {
@@ -85,48 +103,7 @@ arquivos = {
 
 
 # =========================================================
-# CARREGAR TODOS OS MAPAS
-# =========================================================
-
-g2021 = gpd.read_file("dados/mapa_2021.geojson")
-g2022 = gpd.read_file("dados/mapa_2022.geojson")
-g2023 = gpd.read_file("dados/mapa_2023.geojson")
-g2024 = gpd.read_file("dados/mapa_2024.geojson")
-g2025 = gpd.read_file("dados/mapa_2025.geojson")
-
-todos = pd.concat(
-    [
-        g2021,
-        g2022,
-        g2023,
-        g2024,
-        g2025
-    ],
-    ignore_index=True
-)
-
-
-# =========================================================
-# LIMITES GLOBAIS
-# =========================================================
-
-taxa_min = todos["taxa_100k"].min()
-taxa_max = todos["taxa_100k"].max()
-
-
-# =========================================================
-# CARREGAR ANO SELECIONADO
-# =========================================================
-
-mapa = gpd.read_file(
-    arquivos[ano_escolhido]
-)
-
-mapa = mapa.to_crs(4326)
-
-
-# =========================================================
-# PALETA
+# CORES
 # =========================================================
 
 cores = [
@@ -136,6 +113,56 @@ cores = [
     "#6a00a8",
     "#3f007d"
 ]
+
+
+# =========================================================
+# CARREGAR MAPAS
+# =========================================================
+
+@st.cache_data
+def carregar_todos_mapas():
+
+    mapas = {}
+
+    for ano, caminho in arquivos.items():
+
+        mapas[ano] = carregar_mapa(caminho)
+
+    return mapas
+
+
+mapas = carregar_todos_mapas()
+
+
+# =========================================================
+# LIMITES GLOBAIS
+# =========================================================
+
+todos = pd.concat(
+    [
+        mapas[2021],
+        mapas[2022],
+        mapas[2023],
+        mapas[2024],
+        mapas[2025]
+    ],
+    ignore_index=True
+)
+
+taxa_min = todos["taxa_100k"].min()
+taxa_max = todos["taxa_100k"].max()
+
+
+# =========================================================
+# MAPA DO ANO SELECIONADO
+# =========================================================
+
+mapa = mapas[ano_escolhido]
+
+
+# =========================================================
+# PALETA
+# =========================================================
 
 colormap = cm.LinearColormap(
     colors=cores,
@@ -174,9 +201,11 @@ m = folium.Map(
 # =========================================================
 
 folium.GeoJson(
+
     mapa,
 
     style_function=lambda feature: {
+
         "fillColor": (
             "white"
             if (
@@ -229,7 +258,7 @@ colormap.add_to(m)
 
 st_folium(
     m,
-    width=None,
+    use_container_width=True,
     height=700
 )
 
@@ -249,33 +278,13 @@ st.subheader(
 # JUNTAR OS MAPAS
 # =========================================================
 
-mapa_2021 = gpd.read_file(
-    "dados/mapa_2021.geojson"
-)
-
-mapa_2022 = gpd.read_file(
-    "dados/mapa_2022.geojson"
-)
-
-mapa_2023 = gpd.read_file(
-    "dados/mapa_2023.geojson"
-)
-
-mapa_2024 = gpd.read_file(
-    "dados/mapa_2024.geojson"
-)
-
-mapa_2025 = gpd.read_file(
-    "dados/mapa_2025.geojson"
-)
-
-todos = pd.concat(
+todos_media = pd.concat(
     [
-        mapa_2021,
-        mapa_2022,
-        mapa_2023,
-        mapa_2024,
-        mapa_2025
+        mapas[2021],
+        mapas[2022],
+        mapas[2023],
+        mapas[2024],
+        mapas[2025]
     ],
     ignore_index=True
 )
@@ -286,7 +295,7 @@ todos = pd.concat(
 # =========================================================
 
 media = (
-    todos
+    todos_media
     .groupby("name_micro")
     .agg(
         media_migrantes=(
@@ -312,7 +321,7 @@ media = (
 # GEOMETRIA
 # =========================================================
 
-geometria = mapa_2025[
+geometria = mapas[2025][
     [
         "name_micro",
         "geometry"
@@ -380,8 +389,6 @@ colormap_media.caption = (
 # =========================================================
 # CENTRO DO MAPA
 # =========================================================
-
-mapa_media = mapa_media.to_crs(4326)
 
 centro = [
     mapa_media.geometry.centroid.y.mean(),
