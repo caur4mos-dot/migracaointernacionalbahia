@@ -1,15 +1,32 @@
 import streamlit as st
 import pandas as pd
+import geopandas as gpd
+import folium
+import branca.colormap as cm
+
+from streamlit_folium import st_folium
+
+
+# =========================================================
+# TÍTULO
+# =========================================================
 
 st.title("Distribuição Espacial")
 
-st.subheader(
-    "Limitação dos dados"
-)
+
+# =========================================================
+# LIMITAÇÃO DOS DADOS
+# =========================================================
+
+st.subheader("Limitação dos dados")
 
 st.write(
     """
-    Antes da visualização espacial, é importante destacar a elevada quantidade de registros sem especificação do município de residência. Essa limitação resulta em perda parcial de informações espaciais, uma vez que parte dos registros não pode ser adequadamente territorializada.
+    Antes da visualização espacial, é importante destacar a elevada
+    quantidade de registros sem especificação do município de residência.
+    Essa limitação resulta em perda parcial de informações espaciais,
+    uma vez que parte dos registros não pode ser adequadamente
+    territorializada.
     """
 )
 
@@ -17,7 +34,6 @@ nao_esp = pd.read_csv(
     "dados/nao_especificado_municipio.csv"
 )
 
-# Renomear colunas
 nao_esp = nao_esp.rename(
     columns={
         "ano": "Ano",
@@ -27,11 +43,8 @@ nao_esp = nao_esp.rename(
     }
 )
 
-# Formatar percentual
 nao_esp["Percentual (%)"] = (
-    nao_esp["Percentual (%)"]
-    .astype(str)
-    + "%"
+    nao_esp["Percentual (%)"].astype(str) + "%"
 )
 
 st.dataframe(
@@ -40,17 +53,12 @@ st.dataframe(
     hide_index=True
 )
 
-import streamlit as st
-import geopandas as gpd
-import folium
 
-from branca.colormap import LinearColormap
-from streamlit_folium import st_folium
+# =========================================================
+# MAPA INTERATIVO POR ANO
+# =========================================================
 
-
-# =========================
-# SELEÇÃO DO ANO
-# =========================
+st.divider()
 
 st.subheader(
     "Mapa interativo das microrregiões"
@@ -63,9 +71,9 @@ ano_escolhido = st.radio(
 )
 
 
-# =========================
-# ARQUIVOS
-# =========================
+# =========================================================
+# ARQUIVOS DOS MAPAS
+# =========================================================
 
 arquivos = {
     2021: "dados/mapa_2021.geojson",
@@ -76,10 +84,9 @@ arquivos = {
 }
 
 
-# =========================
-# CARREGAR TODOS
-# (para escala fixa)
-# =========================
+# =========================================================
+# CARREGAR TODOS OS MAPAS
+# =========================================================
 
 g2021 = gpd.read_file("dados/mapa_2021.geojson")
 g2022 = gpd.read_file("dados/mapa_2022.geojson")
@@ -88,17 +95,28 @@ g2024 = gpd.read_file("dados/mapa_2024.geojson")
 g2025 = gpd.read_file("dados/mapa_2025.geojson")
 
 todos = pd.concat(
-    [g2021, g2022, g2023, g2024, g2025],
+    [
+        g2021,
+        g2022,
+        g2023,
+        g2024,
+        g2025
+    ],
     ignore_index=True
 )
+
+
+# =========================================================
+# LIMITES GLOBAIS
+# =========================================================
 
 taxa_min = todos["taxa_100k"].min()
 taxa_max = todos["taxa_100k"].max()
 
 
-# =========================
+# =========================================================
 # CARREGAR ANO SELECIONADO
-# =========================
+# =========================================================
 
 mapa = gpd.read_file(
     arquivos[ano_escolhido]
@@ -107,9 +125,9 @@ mapa = gpd.read_file(
 mapa = mapa.to_crs(4326)
 
 
-# =========================
+# =========================================================
 # PALETA
-# =========================
+# =========================================================
 
 cores = [
     "#deebf7",
@@ -119,20 +137,20 @@ cores = [
     "#3f007d"
 ]
 
-colormap = LinearColormap(
+colormap = cm.LinearColormap(
     colors=cores,
     vmin=taxa_min,
     vmax=taxa_max
 )
 
 colormap.caption = (
-    "Taxa por 100 mil habitantes"
+    "Taxa por 10 mil habitantes"
 )
 
 
-# =========================
+# =========================================================
 # CENTRO DO MAPA
-# =========================
+# =========================================================
 
 centro = [
     mapa.geometry.centroid.y.mean(),
@@ -140,9 +158,9 @@ centro = [
 ]
 
 
-# =========================
+# =========================================================
 # MAPA FOLIUM
-# =========================
+# =========================================================
 
 m = folium.Map(
     location=centro,
@@ -151,9 +169,9 @@ m = folium.Map(
 )
 
 
-# =========================
-# CAMADA
-# =========================
+# =========================================================
+# CAMADA DO MAPA
+# =========================================================
 
 folium.GeoJson(
     mapa,
@@ -169,6 +187,7 @@ folium.GeoJson(
                 feature["properties"]["taxa_100k"]
             )
         ),
+
         "color": "black",
         "weight": 1,
         "fillOpacity": 0.9
@@ -187,7 +206,7 @@ folium.GeoJson(
             "Microrregião:",
             "Migrantes:",
             "População:",
-            "Taxa por 100 mil:"
+            "Taxa por 10 mil:"
         ],
 
         localize=True,
@@ -197,12 +216,16 @@ folium.GeoJson(
 ).add_to(m)
 
 
+# =========================================================
+# LEGENDA
+# =========================================================
+
 colormap.add_to(m)
 
 
-# =========================
-# EXIBIR
-# =========================
+# =========================================================
+# EXIBIR MAPA
+# =========================================================
 
 st_folium(
     m,
@@ -210,16 +233,10 @@ st_folium(
     height=700
 )
 
-import streamlit as st
-import pandas as pd
-import geopandas as gpd
-import folium
-import branca.colormap as cm
-from streamlit_folium import st_folium
 
-# =========================
-# TÍTULO
-# =========================
+# =========================================================
+# TAXA MÉDIA 2021–2025
+# =========================================================
 
 st.divider()
 
@@ -228,9 +245,9 @@ st.subheader(
 )
 
 
-# =========================
-# LER MAPAS
-# =========================
+# =========================================================
+# JUNTAR OS MAPAS
+# =========================================================
 
 mapa_2021 = gpd.read_file(
     "dados/mapa_2021.geojson"
@@ -252,10 +269,6 @@ mapa_2025 = gpd.read_file(
     "dados/mapa_2025.geojson"
 )
 
-# =========================
-# JUNTAR TODOS
-# =========================
-
 todos = pd.concat(
     [
         mapa_2021,
@@ -267,9 +280,10 @@ todos = pd.concat(
     ignore_index=True
 )
 
-# =========================
+
+# =========================================================
 # MÉDIA POR MICRORREGIÃO
-# =========================
+# =========================================================
 
 media = (
     todos
@@ -279,10 +293,12 @@ media = (
             "total_migrantes",
             "mean"
         ),
+
         media_pop=(
             "populacao",
             "mean"
         ),
+
         media_taxa=(
             "taxa_100k",
             "mean"
@@ -291,9 +307,10 @@ media = (
     .reset_index()
 )
 
-# =========================
+
+# =========================================================
 # GEOMETRIA
-# =========================
+# =========================================================
 
 geometria = mapa_2025[
     [
@@ -302,9 +319,10 @@ geometria = mapa_2025[
     ]
 ]
 
-# =========================
-# UNIR
-# =========================
+
+# =========================================================
+# UNIR DADOS + GEOMETRIA
+# =========================================================
 
 mapa_media = geometria.merge(
     media,
@@ -312,9 +330,10 @@ mapa_media = geometria.merge(
     how="left"
 )
 
-# =========================
-# ZEROS BRANCOS
-# =========================
+
+# =========================================================
+# ZEROS COMO BRANCO
+# =========================================================
 
 mapa_media["media_taxa_plot"] = (
     mapa_media["media_taxa"]
@@ -325,62 +344,65 @@ mapa_media.loc[
     "media_taxa_plot"
 ] = None
 
-# =========================
-# MESMAS CORES DO R
-# =========================
 
-cores = [
-    "#deebf7",
-    "#9ecae1",
-    "#3182bd",
-    "#6a00a8",
-    "#3f007d"
-]
+# =========================================================
+# LIMITES DA ESCALA
+# =========================================================
 
-# =========================
-# LIMITES
-# =========================
-
-taxa_min = (
+taxa_min_media = (
     mapa_media["media_taxa_plot"]
     .dropna()
     .min()
 )
 
-taxa_max = (
+taxa_max_media = (
     mapa_media["media_taxa_plot"]
     .dropna()
     .max()
 )
 
-# =========================
-# ESCALA CONTÍNUA
-# =========================
 
-colormap = cm.LinearColormap(
+# =========================================================
+# ESCALA DE CORES
+# =========================================================
+
+colormap_media = cm.LinearColormap(
     colors=cores,
-    vmin=taxa_min,
-    vmax=taxa_max
+    vmin=taxa_min_media,
+    vmax=taxa_max_media
 )
 
-# =========================
-# MAPA
-# =========================
+colormap_media.caption = (
+    "Taxa média por 10 mil habitantes"
+)
+
+
+# =========================================================
+# CENTRO DO MAPA
+# =========================================================
+
+mapa_media = mapa_media.to_crs(4326)
 
 centro = [
     mapa_media.geometry.centroid.y.mean(),
     mapa_media.geometry.centroid.x.mean()
 ]
 
-m = folium.Map(
+
+# =========================================================
+# MAPA DA MÉDIA
+# =========================================================
+
+m_media = folium.Map(
     location=centro,
     zoom_start=6,
     tiles="CartoDB positron"
 )
 
-# =========================
+
+# =========================================================
 # ESTILO
-# =========================
+# =========================================================
 
 def estilo(feature):
 
@@ -389,7 +411,7 @@ def estilo(feature):
     if valor is None:
         cor = "white"
     else:
-        cor = colormap(valor)
+        cor = colormap_media(valor)
 
     return {
         "fillColor": cor,
@@ -398,54 +420,57 @@ def estilo(feature):
         "fillOpacity": 1
     }
 
-# =========================
-# TOOLTIP
-# =========================
 
-tooltip = folium.GeoJsonTooltip(
+# =========================================================
+# TOOLTIP
+# =========================================================
+
+tooltip_media = folium.GeoJsonTooltip(
+
     fields=[
         "name_micro",
         "media_migrantes",
         "media_pop",
         "media_taxa"
     ],
+
     aliases=[
         "Microrregião:",
         "Média de migrantes:",
         "Média populacional:",
-        "Taxa média por 100 mil:"
+        "Taxa média por 10 mil:"
     ],
+
     localize=True,
     sticky=False
 )
 
-# =========================
+
+# =========================================================
 # GEOJSON
-# =========================
+# =========================================================
 
 folium.GeoJson(
     mapa_media,
     style_function=estilo,
-    tooltip=tooltip,
+    tooltip=tooltip_media,
     zoom_on_click=False
-).add_to(m)
+).add_to(m_media)
 
-# =========================
+
+# =========================================================
 # LEGENDA
-# =========================
+# =========================================================
 
-colormap.caption = (
-    "Taxa média por 100 mil habitantes"
-)
+colormap_media.add_to(m_media)
 
-colormap.add_to(m)
 
-# =========================
+# =========================================================
 # EXIBIR
-# =========================
+# =========================================================
 
 st_folium(
-    m,
+    m_media,
     use_container_width=True,
     height=700
 )
