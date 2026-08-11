@@ -63,7 +63,7 @@ st.markdown(
         font-size: 16px;
     ">
     <strong style="color: #333795;">Nota:</strong>
-    todos os gráficos apresentados neste site são interativos —
+    todos os gráficos apresentados neste site são interativos -
     toque ou passe o cursor para
     visualizar os detalhes.
     </div>
