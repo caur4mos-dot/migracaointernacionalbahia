@@ -1,291 +1,196 @@
 import streamlit as st
-import pandas as pd
-import geopandas as gpd
-import folium
-import pyreadr
-
-from branca.colormap import LinearColormap
-from streamlit_folium import st_folium
 
 
-# =====================================================
+# =========================================================
 # CONFIGURAÇÃO DA PÁGINA
-# =====================================================
+# =========================================================
 
-st.title("Predição dos Fluxos Migratórios para 2026")
+st.set_page_config(
+    page_title="Migração Internacional na Bahia",
+    page_icon="🌎",
+    layout="wide"
+)
 
-st.write(
+
+# =========================================================
+# TÍTULO PRINCIPAL
+# =========================================================
+
+st.markdown(
     """
-    Esta seção apresenta a predição da taxa de migrantes
-    internacionais regularizados por 10 mil habitantes
-    nas microrregiões da Bahia para o ano de 2026.
+    <h1 style="text-align: center;">
+        Análise temporal, espacial e sociodemográfica da
+        migração internacional regularizada na Bahia entre
+        2021 e 2025 utilizando Inteligência Artificial
+        para predição de 2026
+    </h1>
+    """,
+    unsafe_allow_html=True
+)
+
+
+# =========================================================
+# TEXTO INTRODUTÓRIO
+# =========================================================
+
+st.markdown(
     """
+    <div style="
+        max-width: 1400px;
+        margin-left: 20px;
+        margin-right: 20px;
+        font-size: 18px;
+    ">
+
+        <p style="text-align: justify;">
+            Este site apresenta análises dos fluxos migratórios
+            internacionais regularizados na Bahia utilizando dados
+            do SISMIGRA com o objetivo de compreender os padrões
+            migratórios e apoiar a gestão da Bahia no fortalecimento
+            de políticas públicas de acolhimento, regularização
+            documental, inclusão social, emprego, educação e
+            planejamento territorial.
+        </p>
+
+        <p style="text-align: justify;">
+            O estudo está alinhado à Lei de Migração nº 13.445/2017
+            e aos Objetivos de Desenvolvimento Sustentável (ODS)
+            10.7 e 16, que preveem a facilitação de uma migração
+            segura e regular, bem como o fortalecimento de
+            instituições eficazes e do acesso à justiça.
+        </p>
+
+    </div>
+    """,
+    unsafe_allow_html=True
 )
 
 
-# =====================================================
-# LEITURA DO MAPA
-# =====================================================
+# =========================================================
+# SEÇÕES
+# =========================================================
 
-@st.cache_data
-def carregar_mapa_2026():
-
-    mapa = gpd.read_file(
-        "dados/mapa_predicao_2026.geojson"
-    )
-
-    return mapa.to_crs(epsg=4326)
-
-
-mapa_2026 = carregar_mapa_2026()
-
-
-# =====================================================
-# LEITURA DAS MÉTRICAS
-# =====================================================
-
-@st.cache_data
-def carregar_metricas():
-
-    resultado_rds = pyreadr.read_r(
-        "dados/metricas_validacao_2023_2025.rds"
-    )
-
-    metricas = list(resultado_rds.values())[0]
-
-    # Padronização dos nomes das colunas
-
-    metricas.columns = [
-        str(col).strip().lower()
-        for col in metricas.columns
-    ]
-
-    # Padronização dos nomes utilizados na página
-
-    metricas = metricas.rename(
-        columns={
-            "ano_teste": "ano",
-            "correlacao_spearman": "spearman",
-            "mae": "mae",
-            "mape": "mape"
-        }
-    )
-
-    return metricas
-
-
-metricas = carregar_metricas()
-
-
-# =====================================================
-# MAPA INTERATIVO
-# =====================================================
-
-st.subheader(
-    "Mapa Interativo da Predição para 2026"
-)
-
-
-taxa_min = 0
-taxa_max = 4
-
-
-colormap = LinearColormap(
-    colors=[
-        "#F2F2F2",
-        "#FFFF00",
-        "#F5E400",
-        "#FFA500",
-        "#FF0000"
-    ],
-    vmin=taxa_min,
-    vmax=taxa_max
-)
-
-
-colormap.caption = (
-    "Taxa prevista por 10 mil habitantes"
-)
-
-
-# =====================================================
-# CENTRO DO MAPA
-# =====================================================
-
-centro = [
-    mapa_2026.geometry.centroid.y.mean(),
-    mapa_2026.geometry.centroid.x.mean()
-]
-
-
-# =====================================================
-# CONSTRUÇÃO DO MAPA
-# =====================================================
-
-m = folium.Map(
-    location=centro,
-    zoom_start=6,
-    tiles="CartoDB positron"
-)
-
-
-folium.GeoJson(
-    mapa_2026,
-
-    style_function=lambda feature: {
-
-        "fillColor":
-            "white"
-            if (
-                feature["properties"].get(
-                    "taxa_prevista_2026"
-                ) is None
-                or feature["properties"].get(
-                    "taxa_prevista_2026"
-                ) == 0
-            )
-            else colormap(
-                feature["properties"][
-                    "taxa_prevista_2026"
-                ]
-            ),
-
-        "color": "black",
-
-        "weight": 1,
-
-        "fillOpacity": 1
-    },
-
-    tooltip=folium.GeoJsonTooltip(
-
-        fields=[
-            "name_micro",
-            "taxa_prevista_2026"
-        ],
-
-        aliases=[
-            "Microrregião:",
-            "Taxa prevista por 10 mil habitantes:"
-        ],
-
-        localize=True,
-
-        sticky=False
-    )
-
-).add_to(m)
-
-
-colormap.add_to(m)
-
-
-# =====================================================
-# EXIBIÇÃO DO MAPA
-# =====================================================
-
-st_folium(
-    m,
-    use_container_width=True,
-    height=700
-)
-
-
-# =====================================================
-# VALIDAÇÃO DO MODELO
-# =====================================================
-
-st.divider()
-
-st.header(
-    "Validação do Modelo"
-)
-
-
-st.write(
+st.markdown(
     """
-    Antes da realização da predição para 2026,
-    o modelo foi submetido a uma validação temporal
-    do tipo walk-forward, utilizando os anos de 2023,
-    2024 e 2025 como períodos de teste.
+    <h3 style="margin-top: 30px;">
+        Seções
+    </h3>
+    """,
+    unsafe_allow_html=True
+)
 
-    Em cada etapa, o modelo foi treinado utilizando
-    exclusivamente informações disponíveis nos anos
-    anteriores ao período de teste. As taxas previstas
-    foram então comparadas com os valores efetivamente
-    observados.
+
+# =========================================================
+# BOTÕES DAS SEÇÕES
+# =========================================================
+
+col1, col2, col3 = st.columns(3)
+
+
+with col1:
+
+    st.page_link(
+        "pages/1_Perfil_Sociodemografico.py",
+        label="👥  Perfil Sociodemográfico",
+        icon="👥"
+    )
+
+
+with col2:
+
+    st.page_link(
+        "pages/2_Análise_Espacial.py",
+        label="🗺️  Visualização Espacial",
+        icon="🗺️"
+    )
+
+
+with col3:
+
+    st.page_link(
+        "pages/3_Predição_com_IA.py",
+        label="🤖  Predição dos Fluxos Migratórios",
+        icon="🤖"
+    )
+
+
+# =========================================================
+# LINHA DIVISÓRIA
+# =========================================================
+
+st.markdown("---")
+
+
+# =========================================================
+# LOGOS
+# =========================================================
+
+col1, col2, col3 = st.columns(3)
+
+
+with col1:
+
+    st.image(
+        "SDG-icon-PT-RGB-10-1.jpg",
+        width=250
+    )
+
+
+with col2:
+
+    st.image(
+        "Design sem nome(6).png",
+        width=350
+    )
+
+
+with col3:
+
+    st.image(
+        "Objetivo_Desenvolvimento_Sustentável_16_PT.jpg",
+        width=250
+    )
+
+
+# =========================================================
+# DESENVOLVEDORES
+# =========================================================
+
+st.markdown(
+    """
+    ### Desenvolvedores
+
+    - Cauã Ramos Santos Oliveira
+    - Denise Nunes Viola
     """
 )
 
 
-# =====================================================
-# MÉTRICAS DE VALIDAÇÃO
-# =====================================================
+# =========================================================
+# FOTOS
+# =========================================================
 
-st.subheader(
-    "Métricas de validação"
-)
+col1, col2 = st.columns(2)
 
 
-if "ano" not in metricas.columns:
+with col1:
 
-    st.error(
-        "A coluna de ano não foi encontrada no arquivo de métricas."
+    st.image(
+        "WhatsApp Image 2026-06-05 at 15.10.02.jpeg",
+        width=400
     )
 
-else:
 
-    for _, linha in metricas.iterrows():
+with col2:
 
-        ano = int(linha["ano"])
-
-        st.markdown(
-            f"### Ano de teste: {ano}"
-        )
-
-        col1, col2, col3 = st.columns(3)
+    st.image(
+        "117146658_326983188474224_7519955368301025113_n.jpg",
+        width=400
+    )
 
 
-        # ---------------------------------------------
-        # MAE
-        # ---------------------------------------------
+# =========================================================
+# FINAL
+# =========================================================
 
-        with col1:
-
-            if "mae" in metricas.columns:
-
-                st.metric(
-                    "Erro Absoluto Médio (MAE)",
-                    f"{float(linha['mae']):.2f}"
-                )
-
-
-        # ---------------------------------------------
-        # MAPE
-        # ---------------------------------------------
-
-        with col2:
-
-            if "mape" in metricas.columns:
-
-                st.metric(
-                    "Erro Percentual Absoluto Médio (MAPE)",
-                    f"{float(linha['mape']):.1f}%"
-                )
-
-
-        # ---------------------------------------------
-        # SPEARMAN
-        # ---------------------------------------------
-
-        with col3:
-
-            if "spearman" in metricas.columns:
-
-                st.metric(
-                    "Correlação de Spearman",
-                    f"{float(linha['spearman']):.2f}"
-                )
-
-
-        st.divider()
+st.markdown("---")
