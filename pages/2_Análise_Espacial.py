@@ -81,7 +81,7 @@ st.dataframe(
 
 
 # =========================================================
-# CAMINHOS DOS MAPAS
+# ARQUIVOS DOS MAPAS
 # =========================================================
 
 ARQUIVOS_MAPAS = {
@@ -95,44 +95,69 @@ ARQUIVOS_MAPAS = {
 
 # =========================================================
 # CARREGAR MAPAS
-#
-# IMPORTANTE:
-# O CACHE recebe apenas os caminhos dos arquivos.
-# Não recebe GeoDataFrames.
 # =========================================================
 
 @st.cache_data
 def carregar_mapas():
 
-    mapas = {}
+    mapa_2021 = gpd.read_file(
+        ARQUIVOS_MAPAS[2021]
+    ).to_crs(4326)
 
-    for ano, caminho in ARQUIVOS_MAPAS.items():
+    mapa_2022 = gpd.read_file(
+        ARQUIVOS_MAPAS[2022]
+    ).to_crs(4326)
 
-        mapas[ano] = gpd.read_file(caminho)
+    mapa_2023 = gpd.read_file(
+        ARQUIVOS_MAPAS[2023]
+    ).to_crs(4326)
 
-        # Garantir latitude/longitude
-        mapas[ano] = mapas[ano].to_crs(4326)
+    mapa_2024 = gpd.read_file(
+        ARQUIVOS_MAPAS[2024]
+    ).to_crs(4326)
 
-    return mapas
+    mapa_2025 = gpd.read_file(
+        ARQUIVOS_MAPAS[2025]
+    ).to_crs(4326)
+
+    return (
+        mapa_2021,
+        mapa_2022,
+        mapa_2023,
+        mapa_2024,
+        mapa_2025
+    )
 
 
-mapas = carregar_mapas()
+(
+    mapa_2021,
+    mapa_2022,
+    mapa_2023,
+    mapa_2024,
+    mapa_2025
+) = carregar_mapas()
 
 
 # =========================================================
-# PREPARAR ESCALA GLOBAL
+# ESCALA GLOBAL
 # =========================================================
 
 @st.cache_data
-def preparar_dados_globais():
+def calcular_limites(
+    mapa_2021,
+    mapa_2022,
+    mapa_2023,
+    mapa_2024,
+    mapa_2025
+):
 
     todos = pd.concat(
         [
-            mapas[2021],
-            mapas[2022],
-            mapas[2023],
-            mapas[2024],
-            mapas[2025]
+            mapa_2021,
+            mapa_2022,
+            mapa_2023,
+            mapa_2024,
+            mapa_2025
         ],
         ignore_index=True
     )
@@ -143,7 +168,13 @@ def preparar_dados_globais():
     return taxa_min, taxa_max
 
 
-taxa_min, taxa_max = preparar_dados_globais()
+taxa_min, taxa_max = calcular_limites(
+    mapa_2021,
+    mapa_2022,
+    mapa_2023,
+    mapa_2024,
+    mapa_2025
+)
 
 
 # =========================================================
@@ -165,8 +196,16 @@ ano_escolhido = st.radio(
 
 
 # =========================================================
-# MAPA SELECIONADO
+# SELECIONAR MAPA
 # =========================================================
+
+mapas = {
+    2021: mapa_2021,
+    2022: mapa_2022,
+    2023: mapa_2023,
+    2024: mapa_2024,
+    2025: mapa_2025
+}
 
 mapa = mapas[ano_escolhido]
 
@@ -197,7 +236,7 @@ centro = [
 
 
 # =========================================================
-# MAPA FOLIUM
+# MAPA
 # =========================================================
 
 m = folium.Map(
@@ -256,10 +295,6 @@ folium.GeoJson(
 ).add_to(m)
 
 
-# =========================================================
-# LEGENDA
-# =========================================================
-
 colormap.add_to(m)
 
 
@@ -290,18 +325,21 @@ st.subheader(
 # =========================================================
 
 @st.cache_data
-def calcular_media():
+def calcular_media(
+    mapa_2021,
+    mapa_2022,
+    mapa_2023,
+    mapa_2024,
+    mapa_2025
+):
 
     todos = pd.concat(
         [
-            mapas[2021]
-            for 2021 in [
-                2021,
-                2022,
-                2023,
-                2024,
-                2025
-            ]
+            mapa_2021,
+            mapa_2022,
+            mapa_2023,
+            mapa_2024,
+            mapa_2025
         ],
         ignore_index=True
     )
@@ -314,12 +352,10 @@ def calcular_media():
                 "total_migrantes",
                 "mean"
             ),
-
             media_pop=(
                 "populacao",
                 "mean"
             ),
-
             media_taxa=(
                 "taxa_100k",
                 "mean"
@@ -328,7 +364,7 @@ def calcular_media():
         .reset_index()
     )
 
-    geometria = mapas[2025][
+    geometria = mapa_2025[
         [
             "name_micro",
             "geometry"
@@ -344,7 +380,13 @@ def calcular_media():
     return mapa_media
 
 
-mapa_media = calcular_media()
+mapa_media = calcular_media(
+    mapa_2021,
+    mapa_2022,
+    mapa_2023,
+    mapa_2024,
+    mapa_2025
+)
 
 
 # =========================================================
@@ -362,7 +404,7 @@ mapa_media.loc[
 
 
 # =========================================================
-# LIMITES
+# LIMITES DA MÉDIA
 # =========================================================
 
 taxa_min_media = (
@@ -461,7 +503,7 @@ tooltip_media = folium.GeoJsonTooltip(
 
 
 # =========================================================
-# GEOJSON
+# MAPA
 # =========================================================
 
 folium.GeoJson(
@@ -471,10 +513,6 @@ folium.GeoJson(
     zoom_on_click=False
 ).add_to(m_media)
 
-
-# =========================================================
-# LEGENDA
-# =========================================================
 
 colormap_media.add_to(m_media)
 
