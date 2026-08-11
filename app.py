@@ -2,7 +2,7 @@ import streamlit as st
 
 st.set_page_config(
     page_title="Migração Internacional na Bahia",
-    page_icon="🌎",
+    page_icon="",
     layout="wide"
 )
 
@@ -54,6 +54,11 @@ st.markdown(
 # =========================================================
 # BOTÕES DE NAVEGAÇÃO (SEÇÕES)
 #
+# Cada botão é um st.page_link dentro de um st.container
+# com "key" próprio — isso gera uma classe CSS exclusiva
+# (st-key-<nome>) que usamos abaixo para colorir cada
+# botão individualmente.
+#
 # Caminhos conferidos direto no repositório (pasta pages/):
 # 1_Perfil_Sociodemografico.py
 # 2_Análise_Espacial.py
@@ -62,31 +67,87 @@ st.markdown(
 
 st.markdown("### Seções")
 
+st.markdown(
+    """
+    <style>
+
+    /* Estilo base de todos os botões de navegação */
+    div[data-testid="stPageLink"] {
+        border-radius: 10px;
+        padding: 4px;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.18);
+    }
+
+    div[data-testid="stPageLink"]:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 14px rgba(0, 0, 0, 0.28);
+    }
+
+    div[data-testid="stPageLink"] p {
+        font-size: 18px !important;
+        font-weight: 700 !important;
+        color: white !important;
+        text-align: center;
+        width: 100%;
+    }
+
+    div[data-testid="stPageLink"] a {
+        justify-content: center !important;
+        padding: 14px 10px !important;
+        border-radius: 10px !important;
+        text-decoration: none !important;
+    }
+
+    /* Botão 1 — azul */
+    .st-key-btn_perfil div[data-testid="stPageLink"] a {
+        background-color: #333795 !important;
+    }
+
+    /* Botão 2 — vermelho */
+    .st-key-btn_espacial div[data-testid="stPageLink"] a {
+        background-color: #B31D2D !important;
+    }
+
+    /* Botão 3 — amarelo/dourado */
+    .st-key-btn_predicao div[data-testid="stPageLink"] a {
+        background-color: #F2B134 !important;
+    }
+
+    .st-key-btn_predicao div[data-testid="stPageLink"] p {
+        color: #333795 !important;
+    }
+
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 col_a, col_b, col_c = st.columns(3)
 
 with col_a:
-    st.page_link(
-        "pages/1_Perfil_Sociodemografico.py",
-        label="Perfil Sociodemográfico",
-        icon="👤",
-        use_container_width=True
-    )
+    with st.container(key="btn_perfil"):
+        st.page_link(
+            "pages/1_Perfil_Sociodemografico.py",
+            label="Perfil Sociodemográfico",
+            use_container_width=True
+        )
 
 with col_b:
-    st.page_link(
-        "pages/2_Análise_Espacial.py",
-        label="Visualização Espacial",
-        icon="🗺️",
-        use_container_width=True
-    )
+    with st.container(key="btn_espacial"):
+        st.page_link(
+            "pages/2_Análise_Espacial.py",
+            label="Visualização Espacial",
+            use_container_width=True
+        )
 
 with col_c:
-    st.page_link(
-        "pages/3_Predição_com_IA.py",
-        label="Predição dos Fluxos Migratórios",
-        icon="🤖",
-        use_container_width=True
-    )
+    with st.container(key="btn_predicao"):
+        st.page_link(
+            "pages/3_Predição_com_IA.py",
+            label="Predição dos Fluxos Migratórios",
+            use_container_width=True
+        )
 
 
 # =========================================================
