@@ -8,7 +8,7 @@ from streamlit_folium import st_folium
 
 
 # =========================================================
-# CONFIGURAÇÃO
+# TÍTULO
 # =========================================================
 
 st.title("Distribuição Espacial")
@@ -45,7 +45,7 @@ st.write(
 
 
 # =========================================================
-# TABELA DE REGISTROS SEM MUNICÍPIO
+# REGISTROS SEM MUNICÍPIO ESPECIFICADO
 # =========================================================
 
 @st.cache_data
@@ -94,7 +94,10 @@ ARQUIVOS_MAPAS = {
 
 
 # =========================================================
-# CARREGAR MAPAS
+# CARREGAR OS MAPAS
+#
+# O CACHE FICA SOMENTE AQUI.
+# A função não recebe GeoDataFrames como argumentos.
 # =========================================================
 
 @st.cache_data
@@ -142,39 +145,19 @@ def carregar_mapas():
 # ESCALA GLOBAL
 # =========================================================
 
-@st.cache_data
-def calcular_limites(
-    mapa_2021,
-    mapa_2022,
-    mapa_2023,
-    mapa_2024,
-    mapa_2025
-):
-
-    todos = pd.concat(
-        [
-            mapa_2021,
-            mapa_2022,
-            mapa_2023,
-            mapa_2024,
-            mapa_2025
-        ],
-        ignore_index=True
-    )
-
-    taxa_min = todos["taxa_100k"].min()
-    taxa_max = todos["taxa_100k"].max()
-
-    return taxa_min, taxa_max
-
-
-taxa_min, taxa_max = calcular_limites(
-    mapa_2021,
-    mapa_2022,
-    mapa_2023,
-    mapa_2024,
-    mapa_2025
+todos = pd.concat(
+    [
+        mapa_2021[["taxa_100k"]],
+        mapa_2022[["taxa_100k"]],
+        mapa_2023[["taxa_100k"]],
+        mapa_2024[["taxa_100k"]],
+        mapa_2025[["taxa_100k"]]
+    ],
+    ignore_index=True
 )
+
+taxa_min = todos["taxa_100k"].min()
+taxa_max = todos["taxa_100k"].max()
 
 
 # =========================================================
@@ -226,7 +209,7 @@ colormap.caption = (
 
 
 # =========================================================
-# CENTRO
+# CENTRO DO MAPA
 # =========================================================
 
 centro = [
@@ -236,7 +219,7 @@ centro = [
 
 
 # =========================================================
-# MAPA
+# MAPA FOLIUM
 # =========================================================
 
 m = folium.Map(
@@ -247,7 +230,7 @@ m = folium.Map(
 
 
 # =========================================================
-# CAMADA
+# CAMADA DO MAPA
 # =========================================================
 
 folium.GeoJson(
@@ -259,8 +242,8 @@ folium.GeoJson(
         "fillColor": (
             "white"
             if (
-                feature["properties"]["taxa_100k"] is None
-                or feature["properties"]["taxa_100k"] == 0
+                feature["properties"].get("taxa_100k") is None
+                or feature["properties"].get("taxa_100k") == 0
             )
             else colormap(
                 feature["properties"]["taxa_100k"]
@@ -295,11 +278,15 @@ folium.GeoJson(
 ).add_to(m)
 
 
+# =========================================================
+# LEGENDA
+# =========================================================
+
 colormap.add_to(m)
 
 
 # =========================================================
-# EXIBIR
+# EXIBIR MAPA
 # =========================================================
 
 st_folium(
@@ -322,9 +309,12 @@ st.subheader(
 
 # =========================================================
 # CALCULAR MÉDIA
+#
+# IMPORTANTE:
+# Não utilizamos @st.cache_data aqui porque a função
+# recebe GeoDataFrames.
 # =========================================================
 
-@st.cache_data
 def calcular_media(
     mapa_2021,
     mapa_2022,
@@ -352,10 +342,12 @@ def calcular_media(
                 "total_migrantes",
                 "mean"
             ),
+
             media_pop=(
                 "populacao",
                 "mean"
             ),
+
             media_taxa=(
                 "taxa_100k",
                 "mean"
@@ -404,7 +396,7 @@ mapa_media.loc[
 
 
 # =========================================================
-# LIMITES DA MÉDIA
+# LIMITES DA ESCALA DA MÉDIA
 # =========================================================
 
 taxa_min_media = (
@@ -436,7 +428,7 @@ colormap_media.caption = (
 
 
 # =========================================================
-# CENTRO
+# CENTRO DO MAPA DA MÉDIA
 # =========================================================
 
 centro_media = [
@@ -462,7 +454,9 @@ m_media = folium.Map(
 
 def estilo_media(feature):
 
-    valor = feature["properties"]["media_taxa_plot"]
+    valor = feature["properties"].get(
+        "media_taxa_plot"
+    )
 
     if valor is None:
         cor = "white"
@@ -503,7 +497,7 @@ tooltip_media = folium.GeoJsonTooltip(
 
 
 # =========================================================
-# MAPA
+# CAMADA DO MAPA DA MÉDIA
 # =========================================================
 
 folium.GeoJson(
@@ -514,11 +508,15 @@ folium.GeoJson(
 ).add_to(m_media)
 
 
+# =========================================================
+# LEGENDA DA MÉDIA
+# =========================================================
+
 colormap_media.add_to(m_media)
 
 
 # =========================================================
-# EXIBIR
+# EXIBIR MAPA DA MÉDIA
 # =========================================================
 
 st_folium(
