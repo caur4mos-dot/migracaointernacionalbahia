@@ -2,8 +2,22 @@ import streamlit as st
 
 st.set_page_config(
     page_title="Migração Internacional na Bahia",
-    page_icon="",
-    layout="wide"
+    page_icon="🌎",
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
+
+# Esconde a lista automática de páginas na barra lateral
+# (a navegação agora é feita pelos botões coloridos abaixo)
+st.markdown(
+    """
+    <style>
+    [data-testid="stSidebarNav"] {
+        display: none;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
 )
 
 # =========================================================
