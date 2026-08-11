@@ -129,7 +129,8 @@ with col_a:
     with st.container(key="btn_perfil"):
         st.page_link(
             "pages/1_Perfil_Sociodemografico.py",
-            label="Perfil Sociodemográfico",
+            label="Perfil 
+            Sociodemográfico",
             use_container_width=True
         )
 
