@@ -51,6 +51,27 @@ st.markdown(
 )
 
 
+st.markdown(
+    """
+    <div style="
+        max-width: 1400px;
+        margin: 20px auto 0 auto;
+        padding: 14px 20px;
+        background-color: #FFF7E6;
+        border-left: 6px solid #F2B134;
+        border-radius: 6px;
+        font-size: 16px;
+    ">
+    <strong style="color: #333795;">Nota:</strong>
+    todos os mapas apresentados neste site são interativos —
+    toque ou passe o cursor sobre as microrregiões para
+    visualizar os detalhes de cada uma.
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+
 # =========================================================
 # BOTÕES DE NAVEGAÇÃO (SEÇÕES)
 #
