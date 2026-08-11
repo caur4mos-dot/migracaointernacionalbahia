@@ -63,9 +63,9 @@ st.markdown(
         font-size: 16px;
     ">
     <strong style="color: #333795;">Nota:</strong>
-    todos os mapas apresentados neste site são interativos —
-    toque ou passe o cursor sobre as microrregiões para
-    visualizar os detalhes de cada uma.
+    todos os gráficos apresentados neste site são interativos —
+    toque ou passe o cursor para
+    visualizar os detalhes.
     </div>
     """,
     unsafe_allow_html=True
