@@ -2,7 +2,7 @@ import streamlit as st
 
 st.set_page_config(
     page_title="Migração Internacional na Bahia",
-    page_icon="",
+    page_icon="🌎",
     layout="wide"
 )
 
@@ -90,6 +90,8 @@ st.markdown(
         color: white !important;
         text-align: center;
         width: 100%;
+        white-space: pre-line !important;
+        line-height: 1.3 !important;
     }
 
     div[data-testid="stPageLink"] a {
@@ -129,8 +131,7 @@ with col_a:
     with st.container(key="btn_perfil"):
         st.page_link(
             "pages/1_Perfil_Sociodemografico.py",
-            label="Perfil 
-            Sociodemográfico",
+            label="Perfil\nSociodemográfico",
             use_container_width=True
         )
 
@@ -138,7 +139,7 @@ with col_b:
     with st.container(key="btn_espacial"):
         st.page_link(
             "pages/2_Análise_Espacial.py",
-            label="Visualização Espacial",
+            label="Visualização\nEspacial",
             use_container_width=True
         )
 
@@ -146,7 +147,7 @@ with col_c:
     with st.container(key="btn_predicao"):
         st.page_link(
             "pages/3_Predição_com_IA.py",
-            label="Predição dos Fluxos Migratórios",
+            label="Predição dos\nFluxos Migratórios",
             use_container_width=True
         )
 
