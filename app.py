@@ -27,7 +27,7 @@ st.markdown(
 st.markdown(
     """
     <h1 style="text-align: center;">
-    Análise temporal, espacial e sociodemográfica da migração internacional regularizada na Bahia entre 2021 e 2025 utilizando Inteligência Artificial para predição de 2026
+    Inferência Territorial da Migração Internacional Regularizada na Bahia: Análise Sociodemográfica e Modelagem Espaço-Temporal com Inteligência Artificial
     </h1>
     """,
     unsafe_allow_html=True
